@@ -145,7 +145,7 @@ function speciesFor(s, d, R) {
   return x < 0.35 ? 'oak' : x < 0.55 ? 'pine' : x < 0.8 ? 'broad' : 'locust';
 }
 
-export function buildVegetation(M, { quality = 'high', uniforms }) {
+export function buildVegetation(M, { vegScale = 1, uniforms }) {
   const R = rng(4242);
   const group = new THREE.Group();
   group.name = 'vegetation';
@@ -194,7 +194,7 @@ export function buildVegetation(M, { quality = 'high', uniforms }) {
     register('fa', [x, heightAt(x, y) + 4.5 * sc, -y], `${SPECIES_NAMES[kind]} (méret ${sc}), s ${s} m, d ${d} m`, `fa-${i + 1}`, `LANDMARK_TREES[${i}] (layout.js)`);
   });
 
-  const density = quality === 'low' ? 0.6 : 1;
+  const density = Math.min(1, 0.25 + 0.75 * vegScale);
   // street-side trees & bushes
   const grid = 3.6;
   for (let s = -60; s < 290; s += grid) for (let d = -75; d <= 75; d += grid) {
@@ -233,7 +233,7 @@ export function buildVegetation(M, { quality = 'high', uniforms }) {
     }
   }
   // forest polygon (western woods) + far trees
-  for (let i = 0; i < (quality === 'low' ? 300 : 650); i++) {
+  for (let i = 0; i < Math.round(650 * vegScale); i++) {
     const x = -420 + R() * 460, y = -140 + R() * 420;
     const inF = forest.some((f) => pointInPolygon(x, y, f));
     const p = project(x, y);
@@ -244,7 +244,7 @@ export function buildVegetation(M, { quality = 'high', uniforms }) {
     add(k < 0.45 ? 'oak' : k < 0.75 ? 'broad' : k < 0.9 ? 'locust' : 'linden', x, y, 0.9 + R() * 0.4, R() * 6.28);
   }
   // scattered far trees elsewhere for the horizon
-  for (let i = 0; i < (quality === 'low' ? 200 : 450); i++) {
+  for (let i = 0; i < Math.round(450 * vegScale); i++) {
     const a = R() * Math.PI * 2, r = 80 + R() * 190;
     const x = Math.cos(a) * r, y = 10 + Math.sin(a) * r;
     const p = project(x, y);
@@ -279,7 +279,7 @@ export function buildVegetation(M, { quality = 'high', uniforms }) {
   const weedMat = M.weeds;
   addWind(weedMat, uniforms, 1.6);
   const wm = [];
-  const nW = quality === 'low' ? 900 : 1800;
+  const nW = Math.round(1800 * vegScale);
   for (let i = 0; i < nW; i++) {
     const s = -20 + R() * 240;
     const near = R() < 0.8;

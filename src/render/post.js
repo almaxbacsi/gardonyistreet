@@ -182,6 +182,21 @@ export class PostPipeline {
     return rt;
   }
 
+  /** runtime quality changes */
+  configure({ msaa, aoTaps, renderScale, ao } = {}) {
+    if (ao !== undefined) this.s.ao = ao;
+    if (renderScale !== undefined) this.s.renderScale = renderScale;
+    if (msaa !== undefined && msaa !== (this.s.msaa ?? 4)) {
+      this.s.msaa = msaa;
+      this.rt.scene.depthTexture.dispose(); this.rt.scene.dispose();
+      this.rt.scene = this.makeSceneRT();
+    }
+    if (aoTaps !== undefined && aoTaps !== this.m.ao.defines.AO_TAPS) {
+      this.m.ao.defines.AO_TAPS = aoTaps; this.m.ao.needsUpdate = true;
+    }
+    this.setSize(innerWidth, innerHeight);
+  }
+
   setSize(w, h) {
     const pr = this.r.getPixelRatio() * (this.s.renderScale ?? 1);
     const W = Math.max(2, Math.floor(w * pr)), H = Math.max(2, Math.floor(h * pr));

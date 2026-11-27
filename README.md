@@ -14,10 +14,10 @@ Céges hálózaton (proxy mögött) a textúraletöltés így megy:
 `HTTPS_PROXY=http://proxy.cim:port npm run textures`
 
 Build: `npm run build` → `dist/` (bármilyen statikus tárhelyre feltölthető).
-Gyengébb gépen: `?q=low` a cím végén.
+Grafikai beállítás: a szünet menüben (Alacsony / Közepes / Magas / Ultra / Auto), a választást a böngésző megjegyzi. Az első indításkor a játék a videókártya alapján választ. URL-ből is felülírható: `?q=low|medium|high|ultra`.
 
 **Irányítás:** WASD mozgás, egér nézelődés, Shift futás, Space ugrás, görgő kameratávolság,
-G színkorrekció ki/be, Esc szünet.
+G színkorrekció, O ambient occlusion, L fénysugarak, B bloom ki/be; Esc szünet.
 
 ## Mi honnan jön
 
