@@ -8,12 +8,16 @@ the player is a civilian with suburban tools. See README.md (Hungarian) for the 
 - **Never push to `main`.** All changes go through a feature branch and a pull request.
 - Every piece of work has a **GitHub issue** (the repo lives on GitHub; "tickets" = GitHub issues).
   Create one first if it doesn't exist.
+- Keep the issue **status** field current (not labels): `Backlog` → `In progress` when work starts →
+  `In review` when the PR is opened → `Done` when it is merged (closing via `Closes #n` also sets it).
+  REST: `gh api -X PATCH repos/almaxbacsi/gardonyistreet/issues/<n> -f status="In progress"`.
 - Branch names: `feature/<issue#>-<slug>`, `fix/<issue#>-<slug>`, `chore/<slug>`.
   Branch from the latest `main`; work issues **sequentially** (one branch merged before the next starts)
   unless told otherwise.
 - PR title = short imperative summary; PR body: what changed, how it was tested, `Closes #<issue>`.
 - Claude may **merge its own PRs** (squash merge) once `npm run build` passes and the change was
-  checked visually (headless screenshot). Delete the branch after merging.
+  checked visually (headless screenshot). Claude sessions cannot delete remote branches; the repo
+  setting "Automatically delete head branches" takes care of that.
 - GitHub GraphQL is not available from Claude sessions: use the REST API via `gh api`
   (`repos/almaxbacsi/gardonyistreet/issues`, `/pulls`, `/pulls/<n>/merge`).
 - Commit messages and issues/PRs in English; in-game UI text in Hungarian.
