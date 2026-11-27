@@ -12,7 +12,7 @@ function houseId(pts, cx, cy) {
     const d = pointInPolygon(x, y, pts) ? 0 : Math.hypot(x - cx, y - cy);
     if (d < bd) { bd = d; best = { street, num }; }
   }
-  return best ? { id: `haz-${STREET_ABBR[best.street] || 'X'}${best.num}`, addr: `${best.street} ${best.num}.` } : null;
+  return best ? { id: `house-${STREET_ABBR[best.street] || 'X'}${best.num}`, addr: `${best.street} ${best.num}.` } : null;
 }
 
 const STYLES = {
@@ -342,7 +342,7 @@ export function buildBuildings(M) {
     const hid = houseId(pts, cx, cy);
     const styleName = Object.keys(STYLES).find((k) => STYLES[k] === st);
     const lc = P(0, 0, ridgeH + 0.8);
-    register('haz', lc, `ház, stílus: ${styleName}${hid ? ', ' + hid.addr : ''}`, hid && !usedIds.has(hid.id) ? hid.id : undefined, 'OSM épület + BUILDING_STYLES (layout.js)');
+    register('house', lc, `house, style: ${styleName}${hid ? ', ' + hid.addr : ''}`, hid && !usedIds.has(hid.id) ? hid.id : undefined, 'OSM building + BUILDING_STYLES (layout.js)');
     if (hid) usedIds.add(hid.id);
     info.push({ pts, floor, top, style: st, addr: fp.addr });
   }

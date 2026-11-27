@@ -1,71 +1,94 @@
-# Gárdonyi Géza utca – Piliscsaba (3D TPS, böngészőben)
+# Gárdonyi Géza utca – Piliscsaba (browser 3D game)
 
-Third-person séta a piliscsabai (Márialiget) Gárdonyi Géza utcában. Three.js + Vite.
+A third-person / first-person walk through Gárdonyi Géza utca in Piliscsaba (Márialiget), Hungary.
+You play a civilian with typical suburban tools. It is not a shooter. Built with Three.js and Vite.
 
-## Indítás
+## Getting started
 
 ```bash
 npm install
-npm run textures   # egyszer: CC0 fotótextúrák letöltése (Poly Haven), ~40–60 MB
+npm run textures   # once: download CC0 photo textures (Poly Haven), ~40–60 MB
 npm run dev        # http://localhost:5173
 ```
 
-Céges hálózaton (proxy mögött) a textúraletöltés így megy:
-`HTTPS_PROXY=http://proxy.cim:port npm run textures`
+Behind a corporate proxy, download the textures like this:
+`HTTPS_PROXY=http://proxy.example.com:8080 npm run textures`
 
-Build: `npm run build` → `dist/` (bármilyen statikus tárhelyre feltölthető).
-Grafikai beállítás: a szünet menüben (Alacsony / Közepes / Magas / Ultra / Auto), a választást a böngésző megjegyzi. Az első indításkor a játék a videókártya alapján választ. URL-ből is felülírható: `?q=low|medium|high|ultra`.
+Build: `npm run build` → `dist/` (can be served from any static host).
 
-**Irányítás:** WASD mozgás, egér nézelődés, Shift futás, Space ugrás, görgő kameratávolság,
-Tools: `1`–`7` or mouse wheel to switch (`0` = empty hands), left click to use, `C` = camera distance. V belső (FPS) / külső (TPS) nézet, G színkorrekció, O ambient occlusion, L fénysugarak, B bloom ki/be; Esc szünet.
+## Controls
 
-## Mi honnan jön
-
-| Elem | Forrás |
+| Key | Action |
 |---|---|
-| Utca nyomvonala, házak alaprajza, házszámok, szomszéd utcák, erdő | OpenStreetMap (© OSM contributors, ODbL) – `src/data/gardonyi.json` |
-| Magasságok | Street View kamerák tengerszint feletti magassága (228–238 m) + Open-Meteo DEM |
-| Kerítések, oszlopok, kocsi, kukák, közkút, carport, fák helye, házstílusok | Street View panorámák alapján kézzel felvéve (csak referencia, kép nincs felhasználva) – `src/world/layout.js` |
-| Karakter | Ready Player Me avatar (three.js példamodell, `readyplayer.me.glb`) – `public/models/civilian.glb` |
-| Animációk (áll, sétál, fut) | Mixamo „Soldier” (three.js példamodell) – `public/models/Soldier.glb`, futásidőben átültetve a civil karakterre |
-| Égbolt és környezeti fény | procedurális (saját shader, felhőkkel) |
-| Textúrák | ha van: `public/textures` (CC0 Poly Haven vagy saját fotó); különben kódból generált |
+| `W` `A` `S` `D` | move |
+| Mouse | look around |
+| `Shift` | run |
+| `Space` | jump |
+| Left click | use the tool |
+| `1`–`7` / mouse wheel | switch tool (`0` = empty hands) |
+| `V` | first / third person |
+| `C` | camera distance (third person) |
+| `Esc` | pause (graphics settings are in the pause menu) |
+| `F2` | dev mode (object ids) |
+| `G` / `O` / `L` / `B` | toggle color grading / ambient occlusion / sun shafts / bloom |
 
-A bejárható rész a Szent István király útjától kb. 190 m-ig tart: eddig van Street View felvétel.
+Tools: shovel, lawn mower, angle grinder, impact drill, sledgehammer, hedge trimmer, rake.
 
-## Fejlesztői mód – tárgyak azonosítói
+**Graphics quality:** the pause menu offers Low / Medium / High / Ultra / Auto, and the browser remembers
+your choice. On first start the game picks a preset based on the GPU. The URL can override it:
+`?q=low|medium|high|ultra`.
 
-`F2` (vagy `?dev` a címben) bekapcsolja a címkéket. Célozz a tárgyra, és nyomd meg az `I` billentyűt: az azonosító a vágólapra kerül.
-Alul látszik az aktuális pozíció is: `s` = méter a Szent István király útjától az utca mentén, `d` = oldaltávolság (+ ÉNy, − DK oldal).
+## Sources
 
-| Előtag | Mi | Hol van definiálva |
+| Item | Source |
+|---|---|
+| Street centreline, building footprints, house numbers, side streets, forest | OpenStreetMap (© OSM contributors, ODbL) – `src/data/gardonyi.json` |
+| Elevation | Street View camera altitudes (228–238 m) + Open-Meteo DEM |
+| Fences, poles, car, bins, standpipe, carport, tree positions, house styles | Placed by hand using Street View panoramas as reference only (no imagery is used) – `src/world/layout.js` |
+| Character | Ready Player Me avatar (three.js example model `readyplayer.me.glb`) – `public/models/civilian.glb` |
+| Animations (idle, walk, run) | Mixamo "Soldier" (three.js example model) – `public/models/Soldier.glb`, retargeted to the civilian at load time |
+| Tools | procedural models (`src/tools/models.js`) |
+| Sky and ambient light | procedural shader with clouds |
+| Textures | `public/textures` if present (CC0 Poly Haven or your own photos); otherwise generated in code |
+
+The walkable area runs about 190 m from Szent István király útja, as far as Street View imagery exists.
+
+## Dev mode – object ids
+
+`F2` (or `?dev` in the URL) shows the labels. Aim at an object and press `I` to copy its id to the clipboard.
+The bottom line shows your position: `s` = metres along the street from Szent István király útja,
+`d` = lateral offset (+ north-west, − south-east side).
+
+| Prefix | What | Defined in |
 |---|---|---|
-| `haz-G9` | ház (G = Gárdonyi, SZI = Szent István, A = Árpád, GY = Gyöngyvirág + házszám); szám nélküli: `haz-<n>` | OSM + `BUILDING_STYLES` |
-| `fa-<n>` | fa | `LANDMARK_TREES[n-1]` |
-| `soveny-<n>` | sövény | `HEDGES[n-1]` |
-| `kerites-<n>` | kerítésszakasz | `FENCES[n-1]` |
-| `oszlop-<n>` | villanyoszlop + lámpa | `POLES[n-1]` |
-| `terko-<n>` | térköves beálló | `APRONS[n-1]` |
-| `auto-`, `kuka-`, `kozkut-`, `carport-`, `haziko-`, `postalada-`, `farakas-` | tárgyak | `PROPS` |
-| `ut-beton`, `ut-fold` | útszakaszok | `ROAD` |
+| `house-G9` | house (G = Gárdonyi, SZI = Szent István, A = Árpád, GY = Gyöngyvirág + house number); without a number: `house-<n>` | OSM + `BUILDING_STYLES` |
+| `tree-<n>` | tree | `LANDMARK_TREES[n-1]` |
+| `hedge-<n>` | hedge | `HEDGES[n-1]` |
+| `fence-<n>` | fence section | `FENCES[n-1]` |
+| `pole-<n>` | utility pole + street light | `POLES[n-1]` |
+| `paving-<n>` | paved driveway | `APRONS[n-1]` |
+| `car-`, `bin-`, `standpipe-`, `carport-`, `cabin-`, `mailbox-`, `woodpile-`, `post-` | props | `PROPS` |
+| `road-concrete`, `road-dirt` | road sections | `ROAD` |
 
-Konzolban: `__dev.list()` (teljes lista), `__dev.goto('haz-G9')` (odateleportál).
+Console: `__dev.list()` (full list), `__dev.goto('house-G9')` (teleport there).
 
-Példa kérésre: „a `fa-31`-et vidd 3 méterrel beljebb”, „a `kerites-12` legyen zöld táblás”.
+Example requests: "move `tree-31` 3 metres further in", "make `fence-12` a green panel fence".
 
-## Saját fotók (a leghűbb, GTA-szerű hatáshoz)
+## Your own photos (for the most faithful look)
 
-1. Fotózd le egyenesen, árnyékmentes időben a felületeket (betonlap út, deszkakerítés, vakolat, cserép…).
-2. Tedd a képeket a `public/textures/sajat/` mappába.
-3. A `config.example.json` alapján hozd létre a `config.json`-t (melyik kép melyik felület, hány méter széles).
+1. Photograph the surfaces straight on, in shadow-free light (concrete slab road, plank fence, plaster, roof tiles…).
+2. Put the pictures in `public/textures/own/`.
+3. Create `config.json` from `config.example.json` (which photo goes to which surface, and how many metres it covers).
 
-A saját fotók felülírják a letöltött textúrákat. A következő lépés az lehet, hogy házanként saját homlokzatfotót kapjon minden épület.
+Your own photos override the downloaded textures. (The former folder name `public/textures/sajat/` still works.)
 
-## Felépítés
+## Structure
 
-- `src/world/geo.js` – koordináták, utca menti (s, d) vetület, domborzati modell
-- `src/world/layout.js` – a Street View alapján felvett utcabútorok és szakaszok
-- `src/world/*.js` – terep, utak, házak, kerítések, növényzet, tárgyak, textúrák
-- `src/player/` – karakter, irányítás, ütközés
-- `src/grade.js` – színkorrekció (meleg, párás „San Andreas” hangulat)
-- `scripts/fetch-textures.mjs` – CC0 textúrák letöltése
+- `src/world/geo.js` – coordinates, street-relative (s, d) projection, terrain model
+- `src/world/layout.js` – street furniture and sections placed from Street View reference
+- `src/world/*.js` – terrain, roads, houses, fences, vegetation, props, textures, sky
+- `src/player/` – character, controls (first / third person), IK, collision
+- `src/tools/` – tool models, definitions and the tool system
+- `src/render/` – soft shadows, post-processing (AO, sun shafts, bloom, eye adaptation, grade), quality presets
+- `src/fx/particles.js` – sparks and dust
+- `scripts/fetch-textures.mjs` – CC0 texture download

@@ -5,7 +5,7 @@ import { vegDensity, LANDMARK_TREES, FENCES, PLAY, HEDGES } from './layout.js';
 import { addWind } from './materials.js';
 import { register } from '../dev/registry.js';
 
-const SPECIES_NAMES = { locust: 'akác', linden: 'hárs', broad: 'lombos fa', oak: 'tölgy', pine: 'erdeifenyő', spruce: 'lucfenyő', bush: 'bokor' };
+const SPECIES_NAMES = { locust: 'black locust', linden: 'linden', broad: 'broadleaf tree', oak: 'oak', pine: 'Scots pine', spruce: 'spruce', bush: 'bush' };
 
 const UP = new THREE.Vector3(0, 1, 0);
 
@@ -191,7 +191,7 @@ export function buildVegetation(M, { vegScale = 1, uniforms }) {
   LANDMARK_TREES.forEach(([s, d, kind, sc], i) => {
     const [x, y] = toXY(s, d);
     add(kind, x, y, sc, R() * 6.28);
-    register('fa', [x, heightAt(x, y) + 4.5 * sc, -y], `${SPECIES_NAMES[kind]} (méret ${sc}), s ${s} m, d ${d} m`, `fa-${i + 1}`, `LANDMARK_TREES[${i}] (layout.js)`);
+    register('tree', [x, heightAt(x, y) + 4.5 * sc, -y], `${SPECIES_NAMES[kind]} (size ${sc}), s ${s} m, d ${d} m`, `tree-${i + 1}`, `LANDMARK_TREES[${i}] (layout.js)`);
   });
 
   const density = Math.min(1, 0.25 + 0.75 * vegScale);
@@ -225,7 +225,7 @@ export function buildVegetation(M, { vegScale = 1, uniforms }) {
     }
   }
   // trimmed hedges (thuja / privet) behind fences
-  HEDGES.forEach(([side, s0, s1, dd, h], i) => { const [x, y] = toXY((s0 + s1) / 2, side * dd); register('soveny', [x, heightAt(x, y) + h + 0.5, -y], `nyírt sövény ${h} m, s ${s0}–${s1} m`, `soveny-${i + 1}`, `HEDGES[${i}] (layout.js)`); });
+  HEDGES.forEach(([side, s0, s1, dd, h], i) => { const [x, y] = toXY((s0 + s1) / 2, side * dd); register('hedge', [x, heightAt(x, y) + h + 0.5, -y], `trimmed hedge ${h} m, s ${s0}–${s1} m`, `hedge-${i + 1}`, `HEDGES[${i}] (layout.js)`); });
   for (const [side, s0, s1, dd, h] of HEDGES) {
     for (let s = s0; s <= s1; s += 0.75) {
       const [x, y] = toXY(s + (R() - 0.5) * 0.15, side * dd);

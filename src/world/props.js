@@ -4,7 +4,7 @@ import { POLES, PROPS, APRONS } from './layout.js';
 import { Batcher, GeoBuilder } from './builder.js';
 import { register } from '../dev/registry.js';
 
-const PROP_NAMES = { bin: ['kuka', 'kuka'], standpipe: ['kozkut', 'közkút'], car: ['auto', 'parkoló autó'], carport: ['carport', 'fa carport'], cabin: ['haziko', 'fa kerti házikó'], post: ['beton-oszlopka', 'fehér betonoszlop táblával'], mailbox: ['postalada', 'postaláda'], woodpile: ['farakas', 'farakás'] };
+const PROP_NAMES = { bin: ['bin', 'wheelie bin'], standpipe: ['standpipe', 'public water standpipe'], car: ['car', 'parked car'], carport: ['carport', 'wooden carport'], cabin: ['cabin', 'wooden garden cabin'], post: ['post', 'white concrete post with sign'], mailbox: ['mailbox', 'mailbox'], woodpile: ['woodpile', 'woodpile'] };
 
 const UP = new THREE.Vector3(0, 1, 0);
 const m4 = new THREE.Matrix4(), q = new THREE.Quaternion();
@@ -46,7 +46,7 @@ export function buildProps(M) {
   const insul = new THREE.CylinderGeometry(0.04, 0.05, 0.14, 6);
   const tops = [];
   const lampMat = new THREE.MeshStandardMaterial({ color: 0xf4f1e6, emissive: 0x8a8578, roughness: 0.3 });
-  POLES.forEach((p, i) => { const [x, y] = toXY(p.s, p.d); register('oszlop', [x, heightAt(x, y) + 8.9, -y], `${p.kind === 'concrete' ? 'beton' : 'fa'} villanyoszlop lámpával, s ${p.s} m`, `oszlop-${i + 1}`, `POLES[${i}] (layout.js)`); });
+  POLES.forEach((p, i) => { const [x, y] = toXY(p.s, p.d); register('pole', [x, heightAt(x, y) + 8.9, -y], `${p.kind === 'concrete' ? 'concrete' : 'wooden'} utility pole with street light, s ${p.s} m`, `pole-${i + 1}`, `POLES[${i}] (layout.js)`); });
   for (const p of POLES) {
     const [x, y] = toXY(p.s, p.d);
     const g = heightAt(x, y);
@@ -91,7 +91,7 @@ export function buildProps(M) {
   }
 
   // ---- paved driveway aprons (concrete pavers) in front of gates
-  APRONS.forEach(([side, s0, s1], i) => { const [x, y] = toXY((s0 + s1) / 2, side * 2.8); register('terko', [x, heightAt(x, y) + 0.6, -y], `térköves beálló, s ${s0}–${s1} m`, `terko-${i + 1}`, `APRONS[${i}] (layout.js)`); });
+  APRONS.forEach(([side, s0, s1], i) => { const [x, y] = toXY((s0 + s1) / 2, side * 2.8); register('paving', [x, heightAt(x, y) + 0.6, -y], `paved driveway, s ${s0}–${s1} m`, `paving-${i + 1}`, `APRONS[${i}] (layout.js)`); });
   for (const [side, s0, s1, dTo] of APRONS) {
     const gb = new GeoBuilder();
     const n = Math.max(1, Math.ceil(s1 - s0));
@@ -128,7 +128,7 @@ export function buildProps(M) {
       put('tyre', M.plastic(0x111111), wheel, x, y, g + 0.1, rot + (p.rot || 0));
       colliders.circles.push([x, y, 0.42]);
     } else if (p.type === 'standpipe') {
-      // blue public water standpipe (közkút)
+      // blue public water standpipe
       const col = new THREE.CylinderGeometry(0.09, 0.1, 1.1, 10).translate(0, 0.55, 0);
       put('blue', M.plastic(0x2f7fd8), col, x, y, g, rot);
       const head = new THREE.CylinderGeometry(0.12, 0.1, 0.16, 10);

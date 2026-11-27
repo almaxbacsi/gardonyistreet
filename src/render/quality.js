@@ -4,21 +4,21 @@
 
 export const PRESETS = {
   low: {
-    label: 'Alacsony',
+    label: 'Low',
     pixelRatioMax: 1, renderScale: 0.75, msaa: 0,
     shadowSize: 1024, shadowSearch: 4, shadowTaps: 6, maxPenumbra: 0.35,
     ao: false, aoTaps: 6, shafts: false, shaftTaps: 6, bloom: false, bloomLevels: 4, adapt: true,
     vegScale: 0.45, terrainRes: 2.5, cloudOctaves: 3, envSize: 32, envInterval: 8,
   },
   medium: {
-    label: 'Közepes',
+    label: 'Medium',
     pixelRatioMax: 1, renderScale: 0.9, msaa: 2,
     shadowSize: 2048, shadowSearch: 5, shadowTaps: 10, maxPenumbra: 0.45,
     ao: true, aoTaps: 6, shafts: true, shaftTaps: 8, bloom: true, bloomLevels: 5, adapt: true,
     vegScale: 0.7, terrainRes: 1.75, cloudOctaves: 4, envSize: 64, envInterval: 5,
   },
   high: {
-    label: 'Magas',
+    label: 'High',
     pixelRatioMax: 1.5, renderScale: 1, msaa: 4,
     shadowSize: 4096, shadowSearch: 8, shadowTaps: 16, maxPenumbra: 0.55,
     ao: true, aoTaps: 12, shafts: true, shaftTaps: 14, bloom: true, bloomLevels: 6, adapt: true,

@@ -75,8 +75,8 @@ export function buildRoads(M) {
   dirt.receiveShadow = true;
   group.add(dirt);
 
-  for (const [id, desc, s] of [['ut-beton', 'betonlapos útszakasz (ROAD.concrete)', 60], ['ut-fold', 'földút szakasz (ROAD.dirt)', 160]]) {
-    const [x, y] = toXY(s, 0); register('ut', [x, heightAt(x, y) + 0.8, -y], desc, id, 'ROAD (layout.js)');
+  for (const [id, desc, s] of [['road-concrete', 'concrete slab section (ROAD.concrete)', 60], ['road-dirt', 'dirt road section (ROAD.dirt)', 160]]) {
+    const [x, y] = toXY(s, 0); register('road', [x, heightAt(x, y) + 0.8, -y], desc, id, 'ROAD (layout.js)');
   }
   // neighbouring streets
   for (const w of OSM.w) {

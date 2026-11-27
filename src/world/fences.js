@@ -4,7 +4,7 @@ import { FENCES } from './layout.js';
 import { GeoBuilder, Batcher } from './builder.js';
 import { register } from '../dev/registry.js';
 
-const FENCE_NAMES = { panel: 'zöld táblás drótkerítés', chain: 'drótfonat kerítés', 'gate-green': 'zöld kapu', blockwall: 'betonblokk fal + fekete kapu', 'mesh-wood': 'drótháló fa oszlopokkal', bars: 'fekete pálcás kerítés lábazaton', planks: 'sötét deszkakerítés kőoszlopokkal', none: 'nyílás / kocsibeálló' };
+const FENCE_NAMES = { panel: 'green welded-panel fence', chain: 'chain-link fence', 'gate-green': 'green gate', blockwall: 'concrete block wall + black gate', 'mesh-wood': 'wire mesh on wooden posts', bars: 'black bar fence on a plinth', planks: 'dark plank fence with stone pillars', none: 'opening / driveway' };
 
 const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), UP = new THREE.Vector3(0, 1, 0), ONE = new THREE.Vector3(1, 1, 1);
 
@@ -44,7 +44,7 @@ export function buildFences(M) {
 
   FENCES.forEach(([side, s0, s1, dd, type], i) => {
     const [mx, my] = toXY((s0 + s1) / 2, side * dd);
-    register('kerites', [mx, heightAt(mx, my) + 2.1, -my], `${FENCE_NAMES[type] || type}, ${side > 0 ? 'ÉNy' : 'DK'} oldal, s ${s0}–${s1} m`, `kerites-${i + 1}`, `FENCES[${i}] (layout.js)`);
+    register('fence', [mx, heightAt(mx, my) + 2.1, -my], `${FENCE_NAMES[type] || type}, ${side > 0 ? 'NW' : 'SE'} side, s ${s0}–${s1} m`, `fence-${i + 1}`, `FENCES[${i}] (layout.js)`);
   });
   for (const [side, s0, s1, dd, type, opts = {}] of FENCES) {
     if (type === 'none') continue;
