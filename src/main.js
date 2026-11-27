@@ -20,6 +20,7 @@ import { Character } from './player/character.js';
 import { PlayerController } from './player/controller.js';
 import { CollisionWorld } from './player/collision.js';
 import { Hud } from './ui/hud.js';
+import { DevMode } from './dev/devmode.js';
 
 const params = new URLSearchParams(location.search);
 const QUALITY = params.get('q') === 'low' ? 'low' : 'high';
@@ -130,6 +131,7 @@ async function init() {
   player.spawn(6, -0.4);
 
   const hud = new Hud();
+  const dev = new DevMode({ scene, camera, player, hud });
 
   // ---- start / pause
   startEl.textContent = 'Kattints a kezdéshez';
@@ -177,6 +179,7 @@ async function init() {
     sun.position.set(tx + sunDir.x * 100, p.y + sunDir.y * 100, tz + sunDir.z * 100);
     hud.update(dt, player);
     composer.render(dt);
+    dev.update();
   });
 
   // debug hooks

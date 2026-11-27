@@ -2,6 +2,18 @@ import * as THREE from 'three';
 import { buildingFootprints, heightAt, polygonArea, project, rng } from './geo.js';
 import { BUILDING_STYLES } from './layout.js';
 import { GeoBuilder, Batcher } from './builder.js';
+import { register } from '../dev/registry.js';
+import { OSM, pointInPolygon } from './geo.js';
+
+const STREET_ABBR = { 'Gárdonyi Géza utca': 'G', 'Szent István király útja': 'SZI', 'Árpád vezér utca': 'A', 'Gyöngyvirág utca': 'GY' };
+function houseId(pts, cx, cy) {
+  let best = null, bd = 14;
+  for (const [street, num, x, y] of OSM.addr) {
+    const d = pointInPolygon(x, y, pts) ? 0 : Math.hypot(x - cx, y - cy);
+    if (d < bd) { bd = d; best = { street, num }; }
+  }
+  return best ? { id: `haz-${STREET_ABBR[best.street] || 'X'}${best.num}`, addr: `${best.street} ${best.num}.` } : null;
+}
 
 const STYLES = {
   terracotta: { wall: 'plaster', wallColor: 0xc9734f, wallH: 3.0, roof: 'metal', roofColor: 0x6d4a3d, pitch: 14, frame: 'brown', hip: false },
@@ -98,6 +110,7 @@ export function buildBuildings(M) {
   const batch = new Batcher();
   const colliders = [];
   const info = [];
+  const usedIds = new Set();
   const tpl = windowTemplates();
   const doorGeo = new THREE.BoxGeometry(1.0, 2.1, 0.08);
   const rollerGeo = new THREE.BoxGeometry(1.24, 0.2, 0.14);
@@ -326,6 +339,11 @@ export function buildBuildings(M) {
       placeOnWall(rKey, rMat, pr2, mx, my, top + 0.05, e.nx, e.ny);
     }
 
+    const hid = houseId(pts, cx, cy);
+    const styleName = Object.keys(STYLES).find((k) => STYLES[k] === st);
+    const lc = P(0, 0, ridgeH + 0.8);
+    register('haz', lc, `ház, stílus: ${styleName}${hid ? ', ' + hid.addr : ''}`, hid && !usedIds.has(hid.id) ? hid.id : undefined, 'OSM épület + BUILDING_STYLES (layout.js)');
+    if (hid) usedIds.add(hid.id);
     info.push({ pts, floor, top, style: st, addr: fp.addr });
   }
   const group = batch.toGroup();

@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { toXY, dirAt, heightAt, OSM, wayPoints, fbm } from './geo.js';
 import { ROAD } from './layout.js';
+import { register } from '../dev/registry.js';
 
 /** Ribbon following the Gárdonyi centreline between s0..s1 */
 function streetRibbon(s0, s1, width, { vScale, uScale, yOff, jitter = 0, step = 1, skirt = 0.12 }) {
@@ -74,6 +75,9 @@ export function buildRoads(M) {
   dirt.receiveShadow = true;
   group.add(dirt);
 
+  for (const [id, desc, s] of [['ut-beton', 'betonlapos útszakasz (ROAD.concrete)', 60], ['ut-fold', 'földút szakasz (ROAD.dirt)', 160]]) {
+    const [x, y] = toXY(s, 0); register('ut', [x, heightAt(x, y) + 0.8, -y], desc, id, 'ROAD (layout.js)');
+  }
   // neighbouring streets
   for (const w of OSM.w) {
     if (w.k !== 'h' || w.n === 'Gárdonyi Géza utca' || w.v === 'path') continue;

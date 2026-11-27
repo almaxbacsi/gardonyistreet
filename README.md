@@ -32,6 +32,26 @@ G színkorrekció ki/be, Esc szünet.
 
 A bejárható rész a Szent István király útjától kb. 190 m-ig tart: eddig van Street View felvétel.
 
+## Fejlesztői mód – tárgyak azonosítói
+
+`F2` (vagy `?dev` a címben) bekapcsolja a címkéket. Célozz a tárgyra, és nyomd meg az `I` billentyűt: az azonosító a vágólapra kerül.
+Alul látszik az aktuális pozíció is: `s` = méter a Szent István király útjától az utca mentén, `d` = oldaltávolság (+ ÉNy, − DK oldal).
+
+| Előtag | Mi | Hol van definiálva |
+|---|---|---|
+| `haz-G9` | ház (G = Gárdonyi, SZI = Szent István, A = Árpád, GY = Gyöngyvirág + házszám); szám nélküli: `haz-<n>` | OSM + `BUILDING_STYLES` |
+| `fa-<n>` | fa | `LANDMARK_TREES[n-1]` |
+| `soveny-<n>` | sövény | `HEDGES[n-1]` |
+| `kerites-<n>` | kerítésszakasz | `FENCES[n-1]` |
+| `oszlop-<n>` | villanyoszlop + lámpa | `POLES[n-1]` |
+| `terko-<n>` | térköves beálló | `APRONS[n-1]` |
+| `auto-`, `kuka-`, `kozkut-`, `carport-`, `haziko-`, `postalada-`, `farakas-` | tárgyak | `PROPS` |
+| `ut-beton`, `ut-fold` | útszakaszok | `ROAD` |
+
+Konzolban: `__dev.list()` (teljes lista), `__dev.goto('haz-G9')` (odateleportál).
+
+Példa kérésre: „a `fa-31`-et vidd 3 méterrel beljebb”, „a `kerites-12` legyen zöld táblás”.
+
 ## Saját fotók (a leghűbb, GTA-szerű hatáshoz)
 
 1. Fotózd le egyenesen, árnyékmentes időben a felületeket (betonlap út, deszkakerítés, vakolat, cserép…).

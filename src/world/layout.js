@@ -52,6 +52,8 @@ export const PROPS = [
   { type: 'bin', s: 170, d: 2.5, rot: 0.4 },
   { type: 'standpipe', s: 39.2, d: -3.4 },
   { type: 'car', s: 112.5, d: 3.0, color: 0x1d2228 },
+  { type: 'car', s: 89, d: -3.15, color: 0xb9bdc3 },
+  { type: 'car', s: 183, d: 3.2, color: 0x6e1c1c },
   { type: 'carport', s: 123.5, d: -7.2 },
   { type: 'cabin', at: [-77, -15], rot: 0.75 },
   { type: 'post', s: 82, d: 3.4 }, // white concrete post with small sign on NW bank
@@ -60,23 +62,42 @@ export const PROPS = [
   { type: 'woodpile', s: 92, d: -7.5 },
 ];
 
-// Hand-placed landmark trees (s, d, species, scale)
+// Trees visible on the Street View panoramas (s, d, species, scale).
+// Within the street corridor ONLY these are placed – no random filler.
 export const LANDMARK_TREES = [
-  [178, -4.8, 'oak', 1.45],
-  [160, -11, 'pine', 1.1],
-  [166, -13, 'pine', 1.2],
-  [154, -9, 'pine', 0.95],
-  [80, -9, 'spruce', 1.1],
-  [126, 13, 'spruce', 1.0],
-  [86, -6.5, 'linden', 1.35],
-  [35, -5.5, 'locust', 1.2],
-  [28, -6.5, 'locust', 1.1],
-  [50, -5, 'locust', 1.15],
-  [92, 7.5, 'locust', 1.05],
-  [98, 8.5, 'locust', 1.15],
-  [104, 7, 'locust', 0.95],
-  [8, 5.5, 'locust', 1.1],
-  [3, -5.2, 'linden', 1.2],
+  // P0–P1: junction, earth bank NW, dense tree line SE
+  [3, 5.2, 'linden', 1.15], [10, 6.5, 'locust', 1.05], [16, 5.4, 'broad', 0.95],
+  [2, -5.2, 'linden', 1.2], [9, -6, 'locust', 1.1], [16, -5, 'broad', 1.0], [23, -6.5, 'locust', 1.15],
+  [30, -5.5, 'locust', 1.2], [37, -7, 'broad', 1.0], [45, -5.2, 'locust', 1.15], [53, -6.5, 'locust', 1.05],
+  [59, -5.5, 'broad', 0.95], [12, -11, 'broad', 1.0], [34, -12, 'locust', 1.1],
+  // P1 NW: empty lot, trees only at the back
+  [30, 30, 'broad', 1.1], [46, 28, 'locust', 1.1], [57, 32, 'oak', 1.0],
+  // P2: NW bank with black locusts, big linden + spruce SE, oak behind the terracotta house
+  [64, 7.5, 'locust', 1.05], [81, 8, 'locust', 1.1], [87, 7.2, 'locust', 1.0], [93, 8.5, 'locust', 1.15], [99, 7.5, 'locust', 1.0],
+  [86, -6.8, 'linden', 1.35], [80, -9, 'spruce', 1.1], [70, -24, 'oak', 1.1],
+  // P3: built-up, few (young) trees
+  [103, -6, 'locust', 0.85], [105, 7, 'locust', 0.9], [126, 13, 'spruce', 1.0], [137, -10, 'spruce', 0.9],
+  // P4: locust row SE (looking back), Scots pines, the big oak over the road
+  [143, -5, 'locust', 1.0], [149, -5.3, 'locust', 1.05], [154, -9, 'pine', 0.95], [160, -11, 'pine', 1.1],
+  [166, -13, 'pine', 1.2], [178, -4.8, 'oak', 1.45], [151, 8, 'broad', 1.0], [158, 12, 'spruce', 0.95],
+  [169, 6.5, 'linden', 1.1], [177, 8.5, 'locust', 1.0],
+  // beyond the last panorama (visible, not walkable)
+  [196, 6, 'broad', 1.0], [204, -7, 'broad', 1.05], [214, 7, 'locust', 1.0],
+];
+
+// Trimmed hedges along fences (side, s0, s1, |d|, height) – the built-up, tidy part of the street
+export const HEDGES = [
+  [-1, 63, 100, 4.85, 1.4],
+  [-1, 108.5, 121, 4.55, 1.8],
+  [-1, 126, 140.5, 4.55, 1.8],
+  [+1, 120, 148, 5.15, 1.5],
+];
+
+// Paved driveway aprons in front of gates (side, s0, s1, to |d|)
+export const APRONS = [
+  [-1, 121.5, 125.5, 4.0],
+  [+1, 110.6, 115, 4.0],
+  [-1, 163.2, 165.3, 4.1],
 ];
 
 // Vegetation density by section and side: returns { tree, bush } densities (0..1)

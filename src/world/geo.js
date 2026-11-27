@@ -64,18 +64,22 @@ export function dirAt(s) {
 // at s ≈ 4, 40, 72, 123, 165. Beyond that the road keeps climbing (visible uphill),
 // coarse DEM suggests ~246 at the NE junction.
 const BASE = 228;
+// Start and end of the street are much steeper than the SV altitudes suggest (local knowledge):
+// ~25 % for the first ~35 m from the junction, ~20 % again beyond the last panorama.
 const PROFILE = [
-  [-60, 222.5],
-  [-20, 226.2],
-  [0, 228],
-  [20, 231.5],
-  [40, 234],
-  [72, 236],
+  [-60, 208],
+  [-25, 215.5],
+  [0, 221.5],
+  [15, 225.5],
+  [30, 229.4],
+  [44, 232.4],
+  [72, 235.4],
   [123, 237.2],
-  [165, 238.6],
-  [205, 241.8],
-  [245, 246],
-  [320, 252],
+  [160, 238.7],
+  [175, 241.2],
+  [200, 246.6],
+  [245, 255.5],
+  [320, 266],
 ];
 
 function smooth(t) { return t * t * (3 - 2 * t); }

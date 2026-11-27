@@ -2,6 +2,9 @@ import * as THREE from 'three';
 import { toXY, dirAt, heightAt, rng } from './geo.js';
 import { FENCES } from './layout.js';
 import { GeoBuilder, Batcher } from './builder.js';
+import { register } from '../dev/registry.js';
+
+const FENCE_NAMES = { panel: 'zöld táblás drótkerítés', chain: 'drótfonat kerítés', 'gate-green': 'zöld kapu', blockwall: 'betonblokk fal + fekete kapu', 'mesh-wood': 'drótháló fa oszlopokkal', bars: 'fekete pálcás kerítés lábazaton', planks: 'sötét deszkakerítés kőoszlopokkal', none: 'nyílás / kocsibeálló' };
 
 const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), UP = new THREE.Vector3(0, 1, 0), ONE = new THREE.Vector3(1, 1, 1);
 
@@ -39,6 +42,10 @@ export function buildFences(M) {
     }
   };
 
+  FENCES.forEach(([side, s0, s1, dd, type], i) => {
+    const [mx, my] = toXY((s0 + s1) / 2, side * dd);
+    register('kerites', [mx, heightAt(mx, my) + 2.1, -my], `${FENCE_NAMES[type] || type}, ${side > 0 ? 'ÉNy' : 'DK'} oldal, s ${s0}–${s1} m`, `kerites-${i + 1}`, `FENCES[${i}] (layout.js)`);
+  });
   for (const [side, s0, s1, dd, type, opts = {}] of FENCES) {
     if (type === 'none') continue;
     const d = side * dd;

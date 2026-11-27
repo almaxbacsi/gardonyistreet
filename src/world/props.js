@@ -1,7 +1,10 @@
 import * as THREE from 'three';
 import { toXY, dirAt, heightAt } from './geo.js';
-import { POLES, PROPS } from './layout.js';
+import { POLES, PROPS, APRONS } from './layout.js';
 import { Batcher, GeoBuilder } from './builder.js';
+import { register } from '../dev/registry.js';
+
+const PROP_NAMES = { bin: ['kuka', 'kuka'], standpipe: ['kozkut', 'közkút'], car: ['auto', 'parkoló autó'], carport: ['carport', 'fa carport'], cabin: ['haziko', 'fa kerti házikó'], post: ['beton-oszlopka', 'fehér betonoszlop táblával'], mailbox: ['postalada', 'postaláda'], woodpile: ['farakas', 'farakás'] };
 
 const UP = new THREE.Vector3(0, 1, 0);
 const m4 = new THREE.Matrix4(), q = new THREE.Quaternion();
@@ -42,6 +45,8 @@ export function buildProps(M) {
   const arm = new THREE.BoxGeometry(1.2, 0.08, 0.08);
   const insul = new THREE.CylinderGeometry(0.04, 0.05, 0.14, 6);
   const tops = [];
+  const lampMat = new THREE.MeshStandardMaterial({ color: 0xf4f1e6, emissive: 0x8a8578, roughness: 0.3 });
+  POLES.forEach((p, i) => { const [x, y] = toXY(p.s, p.d); register('oszlop', [x, heightAt(x, y) + 8.9, -y], `${p.kind === 'concrete' ? 'beton' : 'fa'} villanyoszlop lámpával, s ${p.s} m`, `oszlop-${i + 1}`, `POLES[${i}] (layout.js)`); });
   for (const p of POLES) {
     const [x, y] = toXY(p.s, p.d);
     const g = heightAt(x, y);
@@ -60,6 +65,15 @@ export function buildProps(M) {
     }
     tops.push(pts);
     colliders.circles.push([x, y, 0.25]);
+    // street light: bracket towards the road + LED luminaire
+    const toRoad = -Math.sign(p.d);
+    const lx = x + ox * toRoad * 0.9, ly = y + oy * toRoad * 0.9;
+    const bracket = new THREE.CylinderGeometry(0.03, 0.03, 1.9, 6).rotateZ(Math.PI / 2);
+    put('metal-grey', M.metalGrey, bracket, lx, ly, g + 6.7, rot);
+    put('metal-grey', M.metalGrey, new THREE.CylinderGeometry(0.025, 0.025, 0.8, 6).rotateZ(0.9 * toRoad), x + ox * toRoad * 0.35, y + oy * toRoad * 0.35, g + 6.45, rot);
+    const hx = x + ox * toRoad * 1.85, hy = y + oy * toRoad * 1.85;
+    put('lamp-housing', M.plastic(0x4b4f55), rounded(0.62, 0.11, 0.26, 0.04), hx, hy, g + 6.68, rot);
+    put('lamp-led', lampMat, new THREE.BoxGeometry(0.5, 0.02, 0.18), hx, hy, g + 6.62, rot);
   }
   // catenary wires
   const wireGroup = new THREE.Group();
@@ -76,7 +90,31 @@ export function buildProps(M) {
     wireGroup.add(new THREE.Mesh(tube, wireMat));
   }
 
+  // ---- paved driveway aprons (concrete pavers) in front of gates
+  APRONS.forEach(([side, s0, s1], i) => { const [x, y] = toXY((s0 + s1) / 2, side * 2.8); register('terko', [x, heightAt(x, y) + 0.6, -y], `térköves beálló, s ${s0}–${s1} m`, `terko-${i + 1}`, `APRONS[${i}] (layout.js)`); });
+  for (const [side, s0, s1, dTo] of APRONS) {
+    const gb = new GeoBuilder();
+    const n = Math.max(1, Math.ceil(s1 - s0));
+    for (let i = 0; i < n; i++) {
+      const sa = s0 + (i / n) * (s1 - s0), sb = s0 + ((i + 1) / n) * (s1 - s0);
+      const c = [[sa, side * 1.6], [sb, side * 1.6], [sb, side * dTo], [sa, side * dTo]].map(([s, d]) => {
+        const [x, y] = toXY(s, d); return [x, heightAt(x, y) + 0.06, -y];
+      });
+      const u = (s) => s / 0.8, v = (d) => Math.abs(d) / 0.8;
+      gb.quad(c[0], c[1], c[2], c[3], [u(sa), v(1.6)], [u(sb), v(1.6)], [u(sb), v(dTo)], [u(sa), v(dTo)], [0, 1, 0]);
+    }
+    batch.add('pavers', M.block, gb.build());
+  }
+
   // ---- props
+  const propCount = {};
+  PROPS.forEach((p, i) => {
+    const [x, y] = p.at || toXY(p.s, p.d);
+    const [k, name] = PROP_NAMES[p.type] || [p.type, p.type];
+    propCount[k] = (propCount[k] || 0) + 1;
+    const hgt = { car: 1.9, carport: 4.0, cabin: 4.0, bin: 1.6, standpipe: 1.7 }[p.type] || 1.6;
+    register(k, [x, heightAt(x, y) + hgt, -y], name + (p.s !== undefined ? `, s ${p.s} m` : ''), `${k}-${propCount[k]}`, `PROPS[${i}] (layout.js)`);
+  });
   for (const p of PROPS) {
     const [x, y] = p.at || toXY(p.s, p.d);
     const g = heightAt(x, y);

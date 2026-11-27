@@ -1,8 +1,11 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { toXY, project, heightAt, rng, distToPolygon, pointInPolygon, buildingFootprints, OSM, wayPoints } from './geo.js';
-import { vegDensity, LANDMARK_TREES, FENCES, PLAY } from './layout.js';
+import { vegDensity, LANDMARK_TREES, FENCES, PLAY, HEDGES } from './layout.js';
 import { addWind } from './materials.js';
+import { register } from '../dev/registry.js';
+
+const SPECIES_NAMES = { locust: 'akác', linden: 'hárs', broad: 'lombos fa', oak: 'tölgy', pine: 'erdeifenyő', spruce: 'lucfenyő', bush: 'bokor' };
 
 const UP = new THREE.Vector3(0, 1, 0);
 
@@ -176,7 +179,7 @@ export function buildVegetation(M, { quality = 'high', uniforms }) {
     (inst[key] ||= []).push(new THREE.Matrix4().compose(
       new THREE.Vector3(x, heightAt(x, y) - 0.05, -y),
       new THREE.Quaternion().setFromAxisAngle(UP, rotY),
-      new THREE.Vector3(scale, scale * (opts.sy || 1), scale)));
+      new THREE.Vector3(scale * (opts.sx || 1), scale * (opts.sy || 1), scale * (opts.sz || 1))));
     const tr = variants[kind][v].trunkR * scale;
     if (tr > 0) {
       const p = project(x, y);
@@ -185,7 +188,11 @@ export function buildVegetation(M, { quality = 'high', uniforms }) {
   };
 
   // landmark trees from Street View
-  for (const [s, d, kind, sc] of LANDMARK_TREES) { const [x, y] = toXY(s, d); add(kind, x, y, sc, R() * 6.28); }
+  LANDMARK_TREES.forEach(([s, d, kind, sc], i) => {
+    const [x, y] = toXY(s, d);
+    add(kind, x, y, sc, R() * 6.28);
+    register('fa', [x, heightAt(x, y) + 4.5 * sc, -y], `${SPECIES_NAMES[kind]} (méret ${sc}), s ${s} m, d ${d} m`, `fa-${i + 1}`, `LANDMARK_TREES[${i}] (layout.js)`);
+  });
 
   const density = quality === 'low' ? 0.6 : 1;
   // street-side trees & bushes
@@ -197,19 +204,32 @@ export function buildVegetation(M, { quality = 'high', uniforms }) {
     const [x, y] = toXY(ss, dd);
     if (nearRoad(x, y)) continue;
     const dens = vegDensity(ss, dd);
-    const falloff = ad > 45 ? 0.6 : 1;
+    // street corridor: only the trees seen on Street View (landmarks); random filler only far away
+    const inCorridor = ad < 45 && ss > -40 && ss < 260;
+    const falloff = inCorridor ? 0 : 0.45;
     if (R() < dens.tree * 0.3 * falloff * density) {
       if (!blocked(x, y, 3.0) && !nearFence(ss, dd, 1.2)) add(speciesFor(ss, dd, R), x, y, 0.75 + R() * 0.45, R() * 6.28);
     }
     // bushes, a few per cell
+    // undergrowth only where the panoramas show dense bush (SE side near the junction, NW bank at P2)
+    const bushZone = (ss > -5 && ss < 62 && dd < -3 && dd > -14) || (ss > 78 && ss < 108 && dd > 5.5 && dd < 12);
+    const bushF = bushZone ? 0.9 : inCorridor ? 0 : 0.35;
     for (let k = 0; k < 3; k++) {
-      if (R() < dens.bush * 0.45 * falloff * density) {
+      if (R() < dens.bush * 0.45 * bushF * density) {
         const bs = ss + (R() - 0.5) * grid, bd = dd + (R() - 0.5) * grid;
         if (Math.abs(bd) < 2.9) continue;
         const [bx, by] = toXY(bs, bd);
         if (blocked(bx, by, 1.5) || nearRoad(bx, by)) continue;
         add('bush', bx, by, 0.8 + R() * 0.9, R() * 6.28, { sy: 0.8 + R() * 0.6 });
       }
+    }
+  }
+  // trimmed hedges (thuja / privet) behind fences
+  HEDGES.forEach(([side, s0, s1, dd, h], i) => { const [x, y] = toXY((s0 + s1) / 2, side * dd); register('soveny', [x, heightAt(x, y) + h + 0.5, -y], `nyírt sövény ${h} m, s ${s0}–${s1} m`, `soveny-${i + 1}`, `HEDGES[${i}] (layout.js)`); });
+  for (const [side, s0, s1, dd, h] of HEDGES) {
+    for (let s = s0; s <= s1; s += 0.75) {
+      const [x, y] = toXY(s + (R() - 0.5) * 0.15, side * dd);
+      add('bush', x, y, 1, R() * 6.28, { sx: 0.62, sy: h / 1.55, sz: 0.62 });
     }
   }
   // forest polygon (western woods) + far trees
@@ -259,10 +279,10 @@ export function buildVegetation(M, { quality = 'high', uniforms }) {
   const weedMat = M.weeds;
   addWind(weedMat, uniforms, 1.6);
   const wm = [];
-  const nW = quality === 'low' ? 2000 : 4500;
+  const nW = quality === 'low' ? 900 : 1800;
   for (let i = 0; i < nW; i++) {
     const s = -20 + R() * 240;
-    const near = R() < 0.65;
+    const near = R() < 0.8;
     const sideSign = R() < 0.5 ? -1 : 1;
     const d = sideSign * (near ? 2.0 + R() * 2.2 : 2.5 + Math.pow(R(), 1.5) * 28);
     const [x, y] = toXY(s, d);
