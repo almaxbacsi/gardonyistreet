@@ -173,17 +173,25 @@ export function buildVegetation(M, { vegScale = 1, uniforms }) {
   for (const k of kinds) variants[k] = Array.from({ length: k === 'bush' ? 4 : variantsPer }, (_, i) => makeTree(k, 100 + i * 31 + k.length * 7));
 
   const inst = {}; // key `${kind}:${v}` -> matrices
+  const interactive = []; // instances near the street that tools can damage (src/gameplay/interactions.js)
   const add = (kind, x, y, scale, rotY, opts = {}) => {
     const v = Math.floor(R() * variants[kind].length);
     const key = kind + ':' + v;
-    (inst[key] ||= []).push(new THREE.Matrix4().compose(
+    const m = new THREE.Matrix4().compose(
       new THREE.Vector3(x, heightAt(x, y) - 0.05, -y),
       new THREE.Quaternion().setFromAxisAngle(UP, rotY),
-      new THREE.Vector3(scale * (opts.sx || 1), scale * (opts.sy || 1), scale * (opts.sz || 1))));
+      new THREE.Vector3(scale * (opts.sx || 1), scale * (opts.sy || 1), scale * (opts.sz || 1)));
+    (inst[key] ||= []).push(m);
     const tr = variants[kind][v].trunkR * scale;
-    if (tr > 0) {
-      const p = project(x, y);
-      if (nearPlay(p.s, p.d)) colliders.push([x, y, tr + 0.12]);
+    const p = project(x, y);
+    let collider = null;
+    if (tr > 0 && nearPlay(p.s, p.d)) { collider = [x, y, tr + 0.12]; colliders.push(collider); }
+    if (Math.abs(p.d) < 30 && p.s > PLAY.sMin - 10 && p.s < PLAY.sMax + 10) {
+      interactive.push({
+        kind, key, index: inst[key].length - 1, base: m.clone(), x, y, collider,
+        hedge: !!opts.hedge, height: (kind === 'bush' ? 1.55 * (opts.sy || 1) : 9) * scale,
+        radius: kind === 'bush' ? 0.75 * scale * Math.max(opts.sx || 1, opts.sz || 1) : tr + 0.15,
+      });
     }
   };
 
@@ -229,7 +237,7 @@ export function buildVegetation(M, { vegScale = 1, uniforms }) {
   for (const [side, s0, s1, dd, h] of HEDGES) {
     for (let s = s0; s <= s1; s += 0.75) {
       const [x, y] = toXY(s + (R() - 0.5) * 0.15, side * dd);
-      add('bush', x, y, 1, R() * 6.28, { sx: 0.62, sy: h / 1.55, sz: 0.62 });
+      add('bush', x, y, 1, R() * 6.28, { sx: 0.62, sy: h / 1.55, sz: 0.62, hedge: true });
     }
   }
   // forest polygon (western woods) + far trees
@@ -255,6 +263,7 @@ export function buildVegetation(M, { vegScale = 1, uniforms }) {
   }
 
   // create instanced meshes
+  const meshes = {};
   for (const key of Object.keys(inst)) {
     const [kind, v] = key.split(':');
     const tv = variants[kind][+v];
@@ -264,6 +273,7 @@ export function buildVegetation(M, { vegScale = 1, uniforms }) {
     const tm = new THREE.InstancedMesh(tv.bark, M[tv.barkKey], mats.length);
     const lm = new THREE.InstancedMesh(tv.leaves, leafMat, mats.length);
     mats.forEach((m, i) => { tm.setMatrixAt(i, m); lm.setMatrixAt(i, m); });
+    meshes[key] = { tm, lm };
     for (const m of [tm, lm]) { m.castShadow = true; m.receiveShadow = true; m.computeBoundingSphere(); group.add(m); }
     lm.name = 'leaves:' + key;
   }
@@ -296,6 +306,7 @@ export function buildVegetation(M, { vegScale = 1, uniforms }) {
   weeds.castShadow = false;
   weeds.computeBoundingSphere();
   group.add(weeds);
+  for (const r of interactive) Object.assign(r, meshes[r.key]);
 
-  return { group, colliders };
+  return { group, colliders, interactive, weeds: { mesh: weeds, matrices: wm } };
 }

@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import { toXY, dirAt, heightAt } from './geo.js';
 import { POLES, PROPS, APRONS } from './layout.js';
-import { Batcher, GeoBuilder } from './builder.js';
+import { Batcher, GeoBuilder, rounded } from './builder.js';
+import { createBin, createCar } from './dynamicProps.js';
 import { register } from '../dev/registry.js';
 
 const PROP_NAMES = { bin: ['bin', 'wheelie bin'], standpipe: ['standpipe', 'public water standpipe'], car: ['car', 'parked car'], carport: ['carport', 'wooden carport'], cabin: ['cabin', 'wooden garden cabin'], post: ['post', 'white concrete post with sign'], mailbox: ['mailbox', 'mailbox'], woodpile: ['woodpile', 'woodpile'] };
@@ -9,29 +10,10 @@ const PROP_NAMES = { bin: ['bin', 'wheelie bin'], standpipe: ['standpipe', 'publ
 const UP = new THREE.Vector3(0, 1, 0);
 const m4 = new THREE.Matrix4(), q = new THREE.Quaternion();
 
-function rounded(w, h, d, r = 0.08) {
-  // cheap rounded box: box + chamfer via scale of a sphere-ish box (BoxGeometry with more segments, push verts)
-  const g = new THREE.BoxGeometry(w, h, d, 4, 3, 4);
-  const p = g.attributes.position, v = new THREE.Vector3();
-  for (let i = 0; i < p.count; i++) {
-    v.fromBufferAttribute(p, i);
-    const ix = Math.max(0, Math.abs(v.x) - (w / 2 - r)), iy = Math.max(0, Math.abs(v.y) - (h / 2 - r)), iz = Math.max(0, Math.abs(v.z) - (d / 2 - r));
-    const len = Math.hypot(ix, iy, iz);
-    if (len > 0) {
-      const k = r / len;
-      v.x = Math.sign(v.x) * (w / 2 - r + ix * k);
-      v.y = Math.sign(v.y) * (h / 2 - r + iy * k);
-      v.z = Math.sign(v.z) * (d / 2 - r + iz * k);
-    }
-    p.setXYZ(i, v.x, v.y, v.z);
-  }
-  g.computeVertexNormals();
-  return g;
-}
-
 export function buildProps(M) {
   const batch = new Batcher();
   const colliders = { segs: [], circles: [] };
+  const dynamic = { bins: [], cars: [] };
   const put = (key, mat, geo, x, y, h, rotY = 0, s = 1) => {
     q.setFromAxisAngle(UP, rotY);
     m4.compose(new THREE.Vector3(x, h, -y), q, typeof s === 'number' ? new THREE.Vector3(s, s, s) : s);
@@ -120,13 +102,8 @@ export function buildProps(M) {
     const g = heightAt(x, y);
     const rot = p.at ? p.rot : streetRot(p.s);
     if (p.type === 'bin') {
-      const body = rounded(0.58, 1.0, 0.72, 0.05);
-      put('bin', M.plastic(0x23272a), body, x, y, g + 0.52, rot + (p.rot || 0));
-      const lid = rounded(0.62, 0.06, 0.78, 0.02);
-      put('bin', M.plastic(0x23272a), lid, x, y, g + 1.05, rot + (p.rot || 0));
-      const wheel = new THREE.CylinderGeometry(0.1, 0.1, 0.06, 10).rotateZ(Math.PI / 2);
-      put('tyre', M.plastic(0x111111), wheel, x, y, g + 0.1, rot + (p.rot || 0));
-      colliders.circles.push([x, y, 0.42]);
+      // movable: rigid body in src/world/dynamicProps.js, collider is dynamic
+      dynamic.bins.push(createBin(M, x, y, g, rot + (p.rot || 0)));
     } else if (p.type === 'standpipe') {
       // blue public water standpipe
       const col = new THREE.CylinderGeometry(0.09, 0.1, 1.1, 10).translate(0, 0.55, 0);
@@ -141,7 +118,7 @@ export function buildProps(M) {
       put('plinth', M.concrete, slab, x, y, g + 0.02, rot);
       colliders.circles.push([x, y, 0.3]);
     } else if (p.type === 'car') {
-      buildCar(batch, M, x, y, g, rot, p.color);
+      dynamic.cars.push(createCar(M, x, y, g, rot, p.color)); // deformable: dents, scratches, cracks
       const d = dirAt(p.s);
       colliders.segs.push([x - d[0] * 1.9, y - d[1] * 1.9, x + d[0] * 1.9, y + d[1] * 1.9, 0.85]);
     } else if (p.type === 'carport') {
@@ -185,44 +162,8 @@ export function buildProps(M) {
   const group = batch.toGroup();
   group.add(wireGroup);
   group.name = 'props';
-  return { group, colliders };
-}
-
-function buildCar(batch, M, x, y, g, rot, color) {
-  const paint = new THREE.MeshStandardMaterial({ color, roughness: 0.25, metalness: 0.6 });
-  const P = (lx, ly, lz) => { // local: x along car, z across
-    const c = Math.cos(rot), s = Math.sin(rot);
-    return [x + lx * c - lz * s, ly, y + lx * s + lz * c];
-  };
-  const put = (key, mat, geo, lx, ly, lz) => {
-    const [px, py, pz] = P(lx, ly, lz);
-    m4.compose(new THREE.Vector3(px, g + py, -pz), q.setFromAxisAngle(UP, rot), new THREE.Vector3(1, 1, 1));
-    batch.addTransformed(key, mat, geo, m4);
-  };
-  put('car-paint', paint, rounded(4.1, 0.62, 1.74, 0.16), 0, 0.62, 0);
-  const cabin = rounded(2.3, 0.62, 1.52, 0.18);
-  // taper cabin top
-  const p = cabin.attributes.position;
-  for (let i = 0; i < p.count; i++) if (p.getY(i) > 0) { p.setX(i, p.getX(i) * 0.86 - 0.08); p.setZ(i, p.getZ(i) * 0.9); }
-  cabin.computeVertexNormals();
-  put('car-paint', paint, cabin, -0.25, 1.2, 0);
-  const glass = rounded(2.12, 0.5, 1.56, 0.12);
-  const gp = glass.attributes.position;
-  for (let i = 0; i < gp.count; i++) if (gp.getY(i) > 0) { gp.setX(i, gp.getX(i) * 0.84 - 0.08); gp.setZ(i, gp.getZ(i) * 0.9); }
-  glass.computeVertexNormals();
-  put('glass', M.glass, glass, -0.25, 1.2, 0);
-  const tyre = new THREE.CylinderGeometry(0.31, 0.31, 0.22, 16).rotateX(Math.PI / 2);
-  const rim = new THREE.CylinderGeometry(0.2, 0.2, 0.235, 12).rotateX(Math.PI / 2);
-  for (const a of [-1.32, 1.32]) for (const b of [-0.78, 0.78]) {
-    put('tyre', M.plastic(0x141414), tyre, a, 0.31, b);
-    put('metal-grey', M.metalGrey, rim, a, 0.31, b);
-  }
-  for (const b of [-0.6, 0.6]) {
-    put('lights', new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0x222222, roughness: 0.2 }), new THREE.BoxGeometry(0.05, 0.12, 0.35), 2.05, 0.75, b);
-    put('lights-red', new THREE.MeshStandardMaterial({ color: 0x8a1010, roughness: 0.3 }), new THREE.BoxGeometry(0.05, 0.12, 0.3), -2.05, 0.8, b);
-  }
-  put('tyre', M.plastic(0x141414), new THREE.BoxGeometry(0.1, 0.18, 1.6), 2.07, 0.4, 0);
-  put('tyre', M.plastic(0x141414), new THREE.BoxGeometry(0.1, 0.18, 1.6), -2.07, 0.4, 0);
+  for (const o of [...dynamic.bins, ...dynamic.cars]) group.add(o.group);
+  return { group, colliders, dynamic };
 }
 
 function buildCabin(batch, M, x, y, g, rot) {

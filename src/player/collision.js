@@ -6,6 +6,7 @@ export class CollisionWorld {
   constructor() {
     this.segs = []; // [x1,y1,x2,y2,thickness]
     this.circles = []; // [x,y,r]
+    this.dynamic = []; // moving circles [x,y,r] (bins), checked every time; r = 0 disables
     this.cell = 8;
     this.grid = new Map();
   }
@@ -32,11 +33,15 @@ export class CollisionWorld {
     }
     return out;
   }
-  /** Resolve a circle at (x,y) with radius r; returns [x, y, hitBoundary] */
-  resolve(x, y, r) {
+  /**
+   * Resolve a circle at (x,y) with radius r; returns [x, y, hitBoundary].
+   * Static circles may be disabled at runtime by setting their radius to 0 (felled tree, removed bush).
+   */
+  resolve(x, y, r, skipDynamic = false) {
+    const dyn = skipDynamic ? [] : this.dynamic.map((c) => ({ circle: c }));
     for (let iter = 0; iter < 4; iter++) {
       let moved = false;
-      for (const it of this.near(x, y)) {
+      for (const it of [...this.near(x, y), ...dyn]) {
         if (it.seg) {
           const [ax, ay, bx, by, t] = it.seg;
           const dx = bx - ax, dy = by - ay, l2 = dx * dx + dy * dy || 1e-6;
@@ -50,6 +55,7 @@ export class CollisionWorld {
           }
         } else {
           const [cx, cy, cr] = it.circle;
+          if (cr <= 0) continue;
           const ex = x - cx, ey = y - cy, d = Math.hypot(ex, ey), min = r + cr;
           if (d < min && d > 1e-6) { x = cx + (ex / d) * min; y = cy + (ey / d) * min; moved = true; }
         }

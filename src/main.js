@@ -7,6 +7,7 @@ import { PRESETS, ORDER, resolveQuality, saveQuality, needsReload } from './rend
 import { loadPhotoTextures } from './world/photoTextures.js';
 import { ToolSystem } from './tools/toolSystem.js';
 import { ParticleSystem } from './fx/particles.js';
+import { Interactions } from './gameplay/interactions.js';
 import { DynamicSky } from './world/sky.js';
 import { createMaterials } from './world/materials.js';
 import { setAnisotropy } from './world/textures.js';
@@ -121,9 +122,16 @@ async function init() {
 
   const hud = new Hud();
   // ---- tools + particles
-  const particles = { sparks: new ParticleSystem({ max: 500, additive: true }), dust: new ParticleSystem({ max: 400 }) };
-  scene.add(particles.sparks.points, particles.dust.points);
+  const particles = {
+    sparks: new ParticleSystem({ max: 500, additive: true }),
+    dust: new ParticleSystem({ max: 400 }),
+    leaves: new ParticleSystem({ max: 900 }),
+  };
+  for (const ps of Object.values(particles)) scene.add(ps.points);
   const tools = new ToolSystem({ scene, character, player, hud, particles, raycastTargets: occluders });
+  // what the tools do to bins, cars and plants (src/gameplay/interactions.js)
+  const interactions = new Interactions({ props, veg, collision: col, particles, player, tools });
+  occluders.push(...interactions.hitTargets);
   player.onModeChange = (m) => {
     hud.showToast(m === 'fps' ? 'First-person view (V)' : 'Third-person view (V)');
     document.getElementById('cross').classList.toggle('fps', m === 'fps');
@@ -213,7 +221,8 @@ async function init() {
     uniforms.uTime.value += dt;
     tools.update(dt);
     player.update(dt);
-    particles.sparks.update(dt); particles.dust.update(dt);
+    interactions.update(dt);
+    for (const ps of Object.values(particles)) ps.update(dt);
     sky.update(dt, camera, scene);
     // shadow frustum follows the player (snapped to texel grid to avoid shimmering)
     const p = player.pos;
@@ -227,7 +236,7 @@ async function init() {
   });
 
   // debug hooks
-  window.__game = { scene, camera, player, renderer, THREE, post, shafts, sky, tools };
+  window.__game = { scene, camera, player, renderer, THREE, post, shafts, sky, tools, interactions };
 }
 
 init().catch((e) => {
