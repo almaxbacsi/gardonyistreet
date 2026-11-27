@@ -3,7 +3,7 @@
 // Emits onImpact({ tool, point, dir, kind }) for the interaction system (#9).
 import * as THREE from 'three';
 import { TOOLS } from './defs.js';
-import { twoBoneIK, rotateBoneWorld } from '../player/ik.js';
+import { twoBoneIK, rotateBoneWorld, aimBone } from '../player/ik.js';
 import { W } from '../world/geo.js';
 
 const V = (a) => new THREE.Vector3(a[0], a[1], a[2]);
@@ -224,6 +224,11 @@ export class ToolSystem {
     const pole = (x) => root.localToWorld(new THREE.Vector3(x, 0.3, -0.4));
     if (B.RightArm) twoBoneIK(B.RightArm, B.RightForeArm, B.RightHand, wristTarget(B.RightArm, grip), pole(-0.9), w);
     if (B.LeftArm) twoBoneIK(B.LeftArm, B.LeftForeArm, B.LeftHand, wristTarget(B.LeftArm, gripL), pole(0.9), w);
+    // turn each palm onto its handle, then close the fingers around it
+    const ax = (v) => v.clone().transformDirection(this.toolMatrix);
+    const [axR, axL] = GRIP_AXES[t.id] || [new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 1, 0)];
+    palmOnto(B, 'Right', grip, ax(axR), w);
+    palmOnto(B, 'Left', gripL, ax(axL), w);
     curlFingers(B, 'Right', 0.62 * w);
     curlFingers(B, 'Left', 0.62 * w);
 
@@ -269,12 +274,44 @@ export class ToolSystem {
   }
 }
 
+// direction of each handle in the tool's local frame (right grip, left grip)
+const Y = new THREE.Vector3(0, 1, 0), X = new THREE.Vector3(1, 0, 0), Z = new THREE.Vector3(0, 0, 1);
+const GRIP_AXES = {
+  shovel: [X, Y], rake: [Y, Y], sledgehammer: [Y, Y], trimmer: [Z, X],
+  grinder: [Z, X], drill: [Y, X], mower: [X, X],
+};
+
+/** rotate the hand about its own length so the palm faces the handle axis passing through `grip` */
+function palmOnto(B, side, grip, axis, w) {
+  const hand = B[side + 'Hand'], mid = B[side + 'HandMiddle1'], i1 = B[side + 'HandIndex1'], p1 = B[side + 'HandPinky1'];
+  if (!hand || !mid || !i1 || !p1 || w <= 0) return;
+  // the hand's length runs across the handle (like holding a bar), bent from the forearm as little as possible
+  const fa = B[side + 'ForeArm'];
+  const armDir = hand.getWorldPosition(new THREE.Vector3()).sub(fa.getWorldPosition(new THREE.Vector3())).normalize();
+  const across = armDir.clone().addScaledVector(axis, -armDir.dot(axis));
+  if (across.lengthSq() > 0.04) aimBone(hand, mid, across.normalize().lerp(armDir, 0.25).normalize(), w);
+  const h = hand.getWorldPosition(new THREE.Vector3());
+  const fwd = mid.getWorldPosition(new THREE.Vector3()).sub(h).normalize();
+  const knuckles = p1.getWorldPosition(new THREE.Vector3()).sub(i1.getWorldPosition(new THREE.Vector3())).normalize();
+  const palm = new THREE.Vector3().crossVectors(knuckles, fwd).multiplyScalar(side === 'Right' ? 1 : -1);
+  // from the palm centre to the closest point on the handle axis
+  const pc = h.clone().addScaledVector(fwd, 0.06);
+  const toAxis = grip.clone().sub(pc);
+  toAxis.addScaledVector(axis, -toAxis.dot(axis));
+  const flat = (v) => v.clone().addScaledVector(fwd, -v.dot(fwd));
+  const a = flat(palm), b = flat(toAxis);
+  if (a.lengthSq() < 1e-8 || b.lengthSq() < 1e-8) return;
+  a.normalize(); b.normalize();
+  const angle = Math.atan2(new THREE.Vector3().crossVectors(a, b).dot(fwd), a.dot(b));
+  rotateBoneWorld(hand, fwd, angle * w);
+}
+
 /** close a hand around a grip: rotate the finger joints about the knuckle line (index -> pinky) */
 function curlFingers(B, side, angle) {
   const i1 = B[side + 'HandIndex1'], p1 = B[side + 'HandPinky1'];
   if (!i1 || !p1 || angle <= 0) return;
   const axis = p1.getWorldPosition(new THREE.Vector3()).sub(i1.getWorldPosition(new THREE.Vector3())).normalize();
-  const sgn = side === 'Right' ? 1 : -1;
+  const sgn = side === 'Right' ? -1 : 1; // positive = toward the palm
   for (const f of ['Index', 'Middle', 'Ring', 'Pinky']) {
     for (let j = 1; j <= 3; j++) {
       const b = B[`${side}Hand${f}${j}`];

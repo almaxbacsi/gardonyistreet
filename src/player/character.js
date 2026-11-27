@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { aimBone } from './ik.js';
 
 /**
  * Animated civilian (Ready Player Me avatar from the three.js examples, Mixamo-compatible skeleton)
@@ -45,17 +46,32 @@ export class Character {
     bones.RightHand?.add(this.handR);
     bones.LeftHand?.add(this.handL);
 
+    // Reference poses for the retarget must match: the source rig is measured in its own T-pose clip,
+    // the avatar (which binds in an A-pose, arms ~60° down) in its bind pose with the arms raised to a T.
+    let skeleton = null;
+    model.traverse((o) => { if (o.isSkinnedMesh && !skeleton) skeleton = o.skeleton; });
+    skeleton.pose();
+    model.updateMatrixWorld(true);
+    tPoseArms(model, bones);
+    const srcRest = anim.animations.find((a) => a.name.toLowerCase() === 'tpose');
+
     this.mixer = new THREE.AnimationMixer(model);
     this.actions = {};
+    const tracked = new Set();
     for (const n of ['Idle', 'Walk', 'Run']) {
       const src = anim.animations.find((a) => a.name.toLowerCase() === n.toLowerCase());
       if (!src) continue;
-      const clip = retarget(src, anim.scene, model, bones, { align: ALIGN });
+      const clip = retarget(src, anim.scene, model, bones, { align: ALIGN, srcRest });
+      for (const t of clip.tracks) tracked.add(t.name.split('.')[0]);
       const a = this.mixer.clipAction(clip);
       a.play();
       a.setEffectiveWeight(n === 'Idle' ? 1 : 0);
       this.actions[n] = a;
     }
+    skeleton.pose(); // back to the bind pose
+    // bones without animation tracks (finger tips, eyes, thumb/pinky joints) are reset every frame,
+    // otherwise procedural overrides (finger curl) would accumulate frame after frame
+    this.untracked = Object.values(bones).filter((b) => !tracked.has(b.name)).map((b) => [b, b.quaternion.clone()]);
     this.w = { Idle: 1, Walk: 0, Run: 0 };
     this.ready = true;
   }
@@ -90,6 +106,7 @@ export class Character {
     if (A.Idle) A.Idle.setEffectiveWeight(this.w.Idle);
     if (A.Walk) { A.Walk.setEffectiveWeight(this.w.Walk); A.Walk.timeScale = THREE.MathUtils.clamp(speed / 1.55, 0.6, 1.5); }
     if (A.Run) { A.Run.setEffectiveWeight(this.w.Run); A.Run.timeScale = THREE.MathUtils.clamp(speed / 5.0, 0.7, 1.3); }
+    for (const [b, q] of this.untracked) b.quaternion.copy(q);
     this.mixer.update(grounded ? dt : dt * 0.35);
     this.afterAnim?.(dt); // procedural overrides (tool poses)
   }
@@ -100,9 +117,10 @@ export class Character {
  *   W_dst(t) = A · W_src(t) · W_src(rest)^-1 · A^-1 · W_dst(rest)
  * where W are bone rotations relative to each model's root and A aligns the source root to the
  * target root (the Mixamo export faces -Z). Works across different bone axes / armature frames as
- * long as both rigs bind in a similar T-pose. The hips get a vertical bob scaled by hip height.
+ * long as both reference poses match (source: its T-pose clip, target: bind pose with T-posed arms).
+ * The hips get a vertical bob scaled by hip height.
  */
-function retarget(src, srcRoot, dst, dstBones, { fps = 30, align = new THREE.Quaternion() } = {}) {
+function retarget(src, srcRoot, dst, dstBones, { fps = 30, align = new THREE.Quaternion(), srcRest = null } = {}) {
   const norm = (n) => n.replace(/^mixamorig:?/, '');
   const srcBones = {};
   srcRoot.traverse((o) => { if (o.isBone) srcBones[norm(o.name)] = o; });
@@ -118,6 +136,12 @@ function retarget(src, srcRoot, dst, dstBones, { fps = 30, align = new THREE.Qua
   };
   const rootP = (bone, root) => root.worldToLocal(bone.getWorldPosition(new THREE.Vector3()));
 
+  if (srcRest) { // put the source rig into its T-pose clip for the reference measurement
+    const m0 = new THREE.AnimationMixer(srcRoot);
+    m0.clipAction(srcRest).play();
+    m0.setTime(0);
+    m0.stopAllAction();
+  }
   srcRoot.updateMatrixWorld(true); dst.updateMatrixWorld(true);
   const restS = {}, restD = {};
   for (const n of names) { restS[n] = rootQ(srcBones[n], srcRoot, new THREE.Quaternion()); restD[n] = rootQ(dstBones[n], dst, new THREE.Quaternion()); }
@@ -170,4 +194,15 @@ function dstWorldScaleY(bone, root) {
   const a = root.worldToLocal(bone.parent.localToWorld(new THREE.Vector3(0, 0, 0)));
   const b = root.worldToLocal(bone.parent.localToWorld(new THREE.Vector3(0, 1, 0)));
   return Math.max(1e-6, a.distanceTo(b));
+}
+
+/** Raise the avatar's arms from its A-pose bind pose into a T-pose (model faces +Z, its left is +X). */
+function tPoseArms(model, B) {
+  const q = model.getWorldQuaternion(new THREE.Quaternion());
+  for (const [side, sx] of [['Left', 1], ['Right', -1]]) {
+    const out = new THREE.Vector3(sx, 0, 0).applyQuaternion(q);
+    if (B[side + 'Arm']) aimBone(B[side + 'Arm'], B[side + 'ForeArm'], out);
+    if (B[side + 'ForeArm']) aimBone(B[side + 'ForeArm'], B[side + 'Hand'], out);
+    if (B[side + 'HandMiddle1']) aimBone(B[side + 'Hand'], B[side + 'HandMiddle1'], out);
+  }
 }
