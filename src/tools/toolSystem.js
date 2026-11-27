@@ -222,13 +222,11 @@ export class ToolSystem {
     const rightW = new THREE.Vector3(1, 0, 0).transformDirection(root.matrixWorld);
     if (B.Spine1) rotateBoneWorld(B.Spine1, rightW, lean * w * (1 - 0.6 * f));
     const pole = (x) => root.localToWorld(new THREE.Vector3(x, 0.3, -0.4));
-    if (B.RightArm) twoBoneIK(B.RightArm, B.RightForeArm, B.RightHand, wristTarget(B.RightArm, grip), pole(-0.9), w);
-    if (B.LeftArm) twoBoneIK(B.LeftArm, B.LeftForeArm, B.LeftHand, wristTarget(B.LeftArm, gripL), pole(0.9), w);
-    // turn each palm onto its handle, then close the fingers around it
+    // reach both hands to the grips: palm centre onto the handle (not the wrist), refined in a few passes
     const ax = (v) => v.clone().transformDirection(this.toolMatrix);
     const [axR, axL] = GRIP_AXES[t.id] || [new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 1, 0)];
-    palmOnto(B, 'Right', grip, ax(axR), w);
-    palmOnto(B, 'Left', gripL, ax(axL), w);
+    placeHand(B, 'Right', grip, ax(axR), pole(-0.9), w);
+    placeHand(B, 'Left', gripL, ax(axL), pole(0.9), w);
     curlFingers(B, 'Right', 0.62 * w);
     curlFingers(B, 'Left', 0.62 * w);
 
@@ -281,6 +279,44 @@ const GRIP_AXES = {
   grinder: [Z, X], drill: [Y, X], mower: [X, X],
 };
 
+// sign that turns cross(knuckle line, hand length) into the palm normal (mirrored for the left hand)
+const PALM_SIGN = { Right: 1, Left: 1 };
+const HANDLE_R = 0.028; // typical handle radius: distance from the palm surface to the handle axis
+
+/** palm centre, its normal (toward the grip side) and the hand's length direction, all in world space */
+function palmFrame(B, side) {
+  const hand = B[side + 'Hand'], mid = B[side + 'HandMiddle1'], i1 = B[side + 'HandIndex1'], p1 = B[side + 'HandPinky1'];
+  const h = hand.getWorldPosition(new THREE.Vector3());
+  const m = mid.getWorldPosition(new THREE.Vector3());
+  const fwd = m.clone().sub(h).normalize();
+  const knuckles = p1.getWorldPosition(new THREE.Vector3()).sub(i1.getWorldPosition(new THREE.Vector3())).normalize();
+  const normal = new THREE.Vector3().crossVectors(knuckles, fwd).multiplyScalar(PALM_SIGN[side]).normalize();
+  const center = h.lerp(m, 0.55).addScaledVector(normal, 0.012);
+  return { center, normal, fwd };
+}
+
+/**
+ * Two-bone IK + hand orientation so that the palm centre sits on the handle axis through `grip`.
+ * The wrist target is corrected by the remaining palm error and the arm solved again.
+ */
+function placeHand(B, side, grip, axis, poleW, w) {
+  const upper = B[side + 'Arm'], lower = B[side + 'ForeArm'], hand = B[side + 'Hand'];
+  if (!upper || !lower || !hand || w <= 0) return;
+  const target = wristTarget(upper, grip);
+  for (let pass = 0; pass < 3; pass++) {
+    twoBoneIK(upper, lower, hand, target, poleW, w);
+    palmOnto(B, side, grip, axis, w);
+    if (!B[side + 'HandMiddle1']) return;
+    const pf = palmFrame(B, side);
+    // where the palm should be: next to the handle axis, on the side the palm is facing from
+    const onAxis = grip.clone().addScaledVector(axis, pf.center.clone().sub(grip).dot(axis));
+    const want = onAxis.addScaledVector(pf.normal, -HANDLE_R);
+    const err = want.sub(pf.center);
+    if (err.lengthSq() < 1e-6) break;
+    target.addScaledVector(err, w);
+  }
+}
+
 /** rotate the hand about its own length so the palm faces the handle axis passing through `grip` */
 function palmOnto(B, side, grip, axis, w) {
   const hand = B[side + 'Hand'], mid = B[side + 'HandMiddle1'], i1 = B[side + 'HandIndex1'], p1 = B[side + 'HandPinky1'];
@@ -293,7 +329,7 @@ function palmOnto(B, side, grip, axis, w) {
   const h = hand.getWorldPosition(new THREE.Vector3());
   const fwd = mid.getWorldPosition(new THREE.Vector3()).sub(h).normalize();
   const knuckles = p1.getWorldPosition(new THREE.Vector3()).sub(i1.getWorldPosition(new THREE.Vector3())).normalize();
-  const palm = new THREE.Vector3().crossVectors(knuckles, fwd).multiplyScalar(side === 'Right' ? 1 : -1);
+  const palm = new THREE.Vector3().crossVectors(knuckles, fwd).multiplyScalar(PALM_SIGN[side]);
   // from the palm centre to the closest point on the handle axis
   const pc = h.clone().addScaledVector(fwd, 0.06);
   const toAxis = grip.clone().sub(pc);
