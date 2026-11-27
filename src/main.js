@@ -118,6 +118,10 @@ async function init() {
   player.spawn(6, -0.4);
 
   const hud = new Hud();
+  player.onModeChange = (m) => {
+    hud.showToast(m === 'fps' ? 'Belső nézet (V)' : 'Külső nézet (V)');
+    document.getElementById('cross').classList.toggle('fps', m === 'fps');
+  };
   const dev = new DevMode({ scene, camera, player, hud });
 
   // ---- start / pause

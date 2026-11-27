@@ -3,7 +3,14 @@ import { W, toXY, dirAt } from '../world/geo.js';
 
 const WALK = 1.6, RUN = 5.2, GRAVITY = -22, JUMP = 5.8;
 
-/** Third-person controller: WASD + mouse look, over-the-shoulder camera. */
+const EYE = 1.66; // eye height in first person
+
+/**
+ * Player controller: WASD + mouse look. Two camera modes, toggled with V:
+ *  - TPS: over-the-shoulder camera with occlusion handling (scroll = distance)
+ *  - FPS: eye-level camera with head bob; the body is hidden from the camera but still casts a shadow
+ * Switching blends the camera smoothly between the two rigs.
+ */
 export class PlayerController {
   constructor({ camera, dom, character, collision, occluders }) {
     this.camera = camera;
@@ -25,6 +32,11 @@ export class PlayerController {
     this.ray = new THREE.Raycaster();
     this.locked = false;
     this.sensitivity = 0.0022;
+    this.mode = 'tps';
+    this.fpsBlend = 0; // 0 = third person, 1 = first person
+    this.bob = 0;      // head-bob phase
+    this.bobAmp = 0;
+    this.onModeChange = null;
     this._bind();
   }
 
@@ -42,6 +54,7 @@ export class PlayerController {
     addEventListener('keydown', (e) => {
       this.keys.add(e.code);
       if (e.code === 'Space') e.preventDefault();
+      if (e.code === 'KeyV' && !e.repeat) this.setMode(this.mode === 'tps' ? 'fps' : 'tps');
     });
     addEventListener('keyup', (e) => this.keys.delete(e.code));
     addEventListener('blur', () => this.keys.clear());
@@ -49,11 +62,20 @@ export class PlayerController {
     addEventListener('mousemove', (e) => {
       if (!this.locked) return;
       this.yaw -= e.movementX * this.sensitivity;
-      this.pitch = THREE.MathUtils.clamp(this.pitch - e.movementY * this.sensitivity, -1.1, 0.6);
+      const lim = this.mode === 'fps' ? [-1.45, 1.4] : [-1.1, 0.6];
+      this.pitch = THREE.MathUtils.clamp(this.pitch - e.movementY * this.sensitivity, lim[0], lim[1]);
     });
     addEventListener('wheel', (e) => {
+      if (this.mode === 'fps') return;
       this.camDist = THREE.MathUtils.clamp(this.camDist + Math.sign(e.deltaY) * 0.4, 1.6, 7);
     }, { passive: true });
+  }
+
+  setMode(mode) {
+    if (mode === this.mode) return;
+    this.mode = mode;
+    if (mode === 'tps') this.pitch = THREE.MathUtils.clamp(this.pitch, -1.1, 0.6);
+    this.onModeChange?.(mode);
   }
 
   update(dt) {
@@ -93,10 +115,16 @@ export class PlayerController {
       this.pos.y = ground; this.vel.y = 0; this.grounded = true;
     } else this.grounded = false;
 
-    // facing
+    // facing: in first person the body follows the view; in third person it turns toward the motion
     const hs = Math.hypot(this.vel.x, this.vel.z);
     let turn = 0;
-    if (hs > 0.2 && wish.lengthSq() > 0) {
+    if (this.mode === 'fps') {
+      const want = this.yaw + Math.PI;
+      let diff = want - this.facing;
+      diff = Math.atan2(Math.sin(diff), Math.cos(diff));
+      turn = diff;
+      this.facing += diff;
+    } else if (hs > 0.2 && wish.lengthSq() > 0) {
       const want = Math.atan2(this.vel.x, this.vel.z);
       let diff = want - this.facing;
       diff = Math.atan2(Math.sin(diff), Math.cos(diff));
@@ -107,6 +135,13 @@ export class PlayerController {
     this.char.root.rotation.y = this.facing;
     this.char.update(dt, hs, this.grounded, this.vel.y, turn);
     this.speed = hs;
+    // head bob: step frequency grows with speed, amplitude fades in/out
+    const moving = this.grounded && hs > 0.3;
+    this.bobAmp = THREE.MathUtils.damp(this.bobAmp, moving ? Math.min(1, hs / RUN + 0.35) : 0, 6, dt);
+    if (moving) this.bob += dt * (5.2 + hs * 1.15);
+    this.fpsBlend = THREE.MathUtils.damp(this.fpsBlend, this.mode === 'fps' ? 1 : 0, 9, dt);
+    if (Math.abs(this.fpsBlend - (this.mode === 'fps' ? 1 : 0)) < 0.002) this.fpsBlend = this.mode === 'fps' ? 1 : 0;
+    this.char.setHidden(this.fpsBlend > 0.6);
     this._camera(dt);
   }
 
@@ -126,7 +161,22 @@ export class PlayerController {
     const cam = pivot.clone().addScaledVector(back, this.curDist);
     const gh = W.h(cam.x, cam.z) + 0.35;
     if (cam.y < gh) cam.y = gh;
+    // first-person rig: eyes slightly in front of the body axis, with head bob
+    const f = this.fpsBlend;
+    if (f > 0) {
+      const fwd = new THREE.Vector3(-Math.sin(this.yaw), 0, -Math.cos(this.yaw));
+      const a = this.bobAmp;
+      const eye = new THREE.Vector3(this.pos.x, this.pos.y + EYE, this.pos.z)
+        .addScaledVector(fwd, 0.14)
+        .addScaledVector(right, Math.sin(this.bob) * 0.025 * a);
+      eye.y += Math.abs(Math.cos(this.bob)) * 0.045 * a - 0.02 * a;
+      cam.lerp(eye, f);
+    }
     this.camera.position.copy(cam);
-    this.camera.lookAt(pivot.x - back.x, pivot.y - back.y, pivot.z - back.z);
+    const look = cam.clone().sub(back);
+    if (f < 1) look.lerp(new THREE.Vector3(pivot.x - back.x, pivot.y - back.y, pivot.z - back.z), 1 - f);
+    this.camera.lookAt(look);
+    // slight roll with the step in first person
+    if (f > 0) this.camera.rotateZ(Math.sin(this.bob) * 0.004 * this.bobAmp * f);
   }
 }

@@ -48,6 +48,16 @@ export class Character {
     this.ready = true;
   }
 
+  /** Hide the body from the camera (first person) while keeping its shadow. */
+  setHidden(hidden) {
+    if (this.hidden === hidden || !this.ready) return;
+    this.hidden = hidden;
+    this.root.traverse((o) => {
+      if (!o.isMesh) return;
+      for (const m of [].concat(o.material)) { m.colorWrite = !hidden; m.depthWrite = !hidden; }
+    });
+  }
+
   /** @param dt seconds, @param speed horizontal m/s, @param grounded bool */
   update(dt, speed, grounded) {
     if (!this.ready) return;
