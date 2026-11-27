@@ -11,6 +11,9 @@ the player is a civilian with suburban tools. See README.md (Hungarian) for the 
 - Keep the issue **status** field current (not labels): `Backlog` → `In progress` when work starts →
   `In review` when the PR is opened → `Done` when it is merged (closing via `Closes #n` also sets it).
   REST: `gh api -X PATCH repos/almaxbacsi/gardonyistreet/issues/<n> -f status="In progress"`.
+- Document progress **in issue comments** (brief, cornerstones only): dead-ends and how they were
+  resolved, open questions about the goal, decision points and the choice made. When the user
+  answers a question, record the answer as a comment too. Mention the merged PR at the end.
 - Branch names: `feature/<issue#>-<slug>`, `fix/<issue#>-<slug>`, `chore/<slug>`.
   Branch from the latest `main`; work issues **sequentially** (one branch merged before the next starts)
   unless told otherwise.
