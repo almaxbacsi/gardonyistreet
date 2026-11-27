@@ -27,7 +27,7 @@ G színkorrekció ki/be, Esc szünet.
 | Magasságok | Street View kamerák tengerszint feletti magassága (228–238 m) + Open-Meteo DEM |
 | Kerítések, oszlopok, kocsi, kukák, közkút, carport, fák helye, házstílusok | Street View panorámák alapján kézzel felvéve (csak referencia, kép nincs felhasználva) – `src/world/layout.js` |
 | Karakter | Mixamo „Soldier” (three.js példamodell) – `public/models/Soldier.glb` |
-| Környezeti fény (HDRI) | Poly Haven „Quarry 01” (CC0) |
+| Égbolt és környezeti fény | procedurális (saját shader, felhőkkel) |
 | Textúrák | ha van: `public/textures` (CC0 Poly Haven vagy saját fotó); különben kódból generált |
 
 A bejárható rész a Szent István király útjától kb. 190 m-ig tart: eddig van Street View felvétel.
