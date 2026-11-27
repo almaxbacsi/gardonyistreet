@@ -2,8 +2,9 @@
 //   scene (HDR, MSAA, depth texture)
 //   -> linear depth at half resolution
 //   -> screen-space ambient occlusion (half res) + depth-aware blur
-//   -> composite (AO on ambient-ish light) -> final (tone map + grade) -> screen
-// Later stages (shafts, bloom, adaptation) plug in between composite and final.
+//   -> composite (AO on ambient-ish light, + `extra` e.g. sun shafts)
+//   -> bloom mip chain + eye adaptation (optional, set .bloom / .adapt)
+//   -> final (exposure, ACES, grade, vignette, grain) -> screen
 import * as THREE from 'three';
 
 const FS_VERT = /* glsl */`
@@ -109,7 +110,7 @@ const COMPOSITE = /* glsl */`${COMMON}
 
 // Final: exposure, ACES filmic tone mapping, warm "late afternoon" grade, vignette, sRGB, dither
 const FINAL = /* glsl */`${COMMON}
-  uniform sampler2D tSrc; uniform float uExposure, uGrade, uSat, uVig;
+  uniform sampler2D tSrc, tBloom, tAdapt; uniform float uExposure, uGrade, uSat, uVig, uBloom, uAdaptOn, uKey, uMinEx, uMaxEx, uGrain, uTime;
   vec3 RRTAndODTFit(vec3 v) { vec3 a = v * (v + 0.0245786) - 0.000090537; vec3 b = v * (0.983729 * v + 0.4329510) + 0.238081; return a / b; }
   vec3 aces(vec3 c) {
     const mat3 inM = mat3(vec3(0.59719, 0.07600, 0.02840), vec3(0.35458, 0.90834, 0.13383), vec3(0.04823, 0.01566, 0.83777));
@@ -118,8 +119,11 @@ const FINAL = /* glsl */`${COMMON}
   }
   vec3 toSRGB(vec3 c) { return mix(c * 12.92, 1.055 * pow(max(c, 0.0), vec3(1.0 / 2.4)) - 0.055, step(vec3(0.0031308), c)); }
   void main() {
-    vec3 col = texture2D(tSrc, vUv).rgb * uExposure;
-    col = aces(col);
+    vec3 col = texture2D(tSrc, vUv).rgb;
+    if (uBloom > 0.0) col = mix(col, texture2D(tBloom, vUv).rgb, uBloom);
+    float ex = uExposure;
+    if (uAdaptOn > 0.5) ex *= clamp(uKey / exp(texture2D(tAdapt, vec2(0.5)).r), uMinEx, uMaxEx);
+    col = aces(col * ex);
     if (uGrade > 0.5) {
       float l = luma(col);
       col *= mix(vec3(0.86, 1.0, 1.08), vec3(1.06, 1.0, 0.91), smoothstep(0.03, 0.55, l)); // teal shadows, warm highlights
@@ -131,6 +135,9 @@ const FINAL = /* glsl */`${COMMON}
       col *= 1.0 - uVig * smoothstep(0.1, 0.75, dot(c, c) * 1.6);
     }
     col = toSRGB(clamp(col, 0.0, 1.0));
+    // fine film grain, stronger in the mid-tones
+    float gr = fract(sin(dot(gl_FragCoord.xy + fract(uTime) * 61.7, vec2(12.9898, 78.233))) * 43758.5453) - 0.5;
+    col += gr * uGrain * (1.0 - abs(luma(col) * 2.0 - 1.0));
     col += (ign(gl_FragCoord.xy) - 0.5) / 255.0;
     gl_FragColor = vec4(col, 1.0);
   }`;
@@ -159,7 +166,11 @@ export class PostPipeline {
       ao: mat(AO, { tZ: { value: this.rt.z.texture }, uTanHalf: { value: new THREE.Vector2() }, uTexel: { value: new THREE.Vector2() }, uRadius: { value: 0.9 }, uIntensity: { value: 1.5 }, uAspect: { value: 1 } }, { AO_TAPS: settings.aoTaps ?? 12 }),
       blur: mat(BLUR, { tSrc: { value: null }, tZ: { value: this.rt.z.texture }, uDir: { value: new THREE.Vector2() } }, { BLUR_TOL: '0.05' }),
       comp: mat(COMPOSITE, { tColor: { value: null }, tAO: { value: this.rt.aoA.texture }, tZ: { value: this.rt.z.texture }, tExtra: { value: null }, uHalfRes: { value: new THREE.Vector2() }, uAoOn: { value: 1 }, uAoStrength: { value: 0.9 }, uExtraOn: { value: 0 } }),
-      final: mat(FINAL, { tSrc: { value: this.rt.comp.texture }, uExposure: { value: 0.95 }, uGrade: { value: 1 }, uSat: { value: 1.1 }, uVig: { value: 0.3 } }),
+      final: mat(FINAL, {
+        tSrc: { value: this.rt.comp.texture }, uExposure: { value: 0.95 }, uGrade: { value: 1 }, uSat: { value: 1.1 }, uVig: { value: 0.3 },
+        tBloom: { value: null }, uBloom: { value: 0 }, tAdapt: { value: null }, uAdaptOn: { value: 0 },
+        uKey: { value: 0.1 }, uMinEx: { value: 0.75 }, uMaxEx: { value: 1.5 }, uGrain: { value: 0.035 }, uTime: { value: 0 },
+      }),
     };
     this.setSize(innerWidth, innerHeight);
   }
@@ -190,7 +201,7 @@ export class PostPipeline {
   }
 
   /** hook for extra passes (shafts etc.): fn(pipeline) -> texture with rgb add + a transmittance */
-  render() {
+  render(dt = 1 / 60) {
     const r = this.r, cam = this.camera, s = this.s;
     r.setRenderTarget(this.rt.scene);
     r.render(this.scene, cam);
@@ -216,10 +227,17 @@ export class PostPipeline {
     c.tColor.value = this.rt.scene.texture; c.uAoOn.value = aoOn ? 1 : 0;
     c.tExtra.value = extraTex; c.uExtraOn.value = extraTex ? 1 : 0;
     this.pass(this.m.comp, this.rt.comp);
-    this.m.final.uniforms.uGrade.value = this.grade ? 1 : 0;
-    this.finalSource = this.rt.comp.texture;
-    if (this.beforeFinal) this.finalSource = this.beforeFinal(this, this.rt.comp.texture);
-    this.m.final.uniforms.tSrc.value = this.finalSource;
+    const f = this.m.final.uniforms;
+    f.uGrade.value = this.grade ? 1 : 0;
+    f.uTime.value += dt;
+    const src = this.rt.comp.texture;
+    const bloomOn = this.bloom && this.bloom.enabled;
+    f.tBloom.value = bloomOn ? this.bloom.render(this, src) : null;
+    f.uBloom.value = bloomOn ? this.bloom.strength : 0;
+    const adOn = this.adapt && this.adapt.enabled;
+    f.tAdapt.value = adOn ? this.adapt.render(this, src, dt) : null;
+    f.uAdaptOn.value = adOn ? 1 : 0;
+    f.tSrc.value = src;
     this.pass(this.m.final, null);
   }
 }
