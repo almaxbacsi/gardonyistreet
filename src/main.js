@@ -4,6 +4,7 @@ import { HDRLoader } from 'three/examples/jsm/loaders/HDRLoader.js';
 import { PostPipeline } from './render/post.js';
 import { installSoftShadows } from './render/softShadows.js';
 import { SunShafts } from './render/shafts.js';
+import { Bloom, EyeAdaptation } from './render/bloom.js';
 import { loadPhotoTextures } from './world/photoTextures.js';
 import { createMaterials } from './world/materials.js';
 import { setAnisotropy } from './world/textures.js';
@@ -156,10 +157,13 @@ async function init() {
     QUALITY === 'high' ? { msaa: 4, ao: true, aoTaps: 12 } : { msaa: 0, ao: true, aoTaps: 6, renderScale: 0.85 });
   const shafts = new SunShafts(sunDir, { taps: QUALITY === 'high' ? 14 : 8 });
   post.extra = (pp) => shafts.render(pp);
+  post.bloom = new Bloom({ levels: QUALITY === 'high' ? 6 : 4 });
+  post.adapt = new EyeAdaptation();
   addEventListener('resize', () => post.setSize(innerWidth, innerHeight));
   addEventListener('keydown', (e) => {
     if (e.code === 'KeyG') { post.grade = !post.grade; hud.showToast(post.grade ? 'Színkorrekció: be' : 'Színkorrekció: ki'); }
     if (e.code === 'KeyL') { shafts.enabled = !shafts.enabled; hud.showToast(shafts.enabled ? 'Fénysugarak: be' : 'Fénysugarak: ki'); }
+    if (e.code === 'KeyB') { post.bloom.enabled = !post.bloom.enabled; hud.showToast(post.bloom.enabled ? 'Bloom: be' : 'Bloom: ki'); }
     if (e.code === 'KeyO') { post.s.ao = post.s.ao === false; hud.showToast(post.s.ao ? 'Árnyékolás (AO): be' : 'Árnyékolás (AO): ki'); }
   });
 
@@ -180,7 +184,7 @@ async function init() {
     sun.target.position.set(tx, p.y, tz);
     sun.position.set(tx + sunDir.x * 100, p.y + sunDir.y * 100, tz + sunDir.z * 100);
     hud.update(dt, player);
-    post.render();
+    post.render(dt);
     dev.update();
   });
 
