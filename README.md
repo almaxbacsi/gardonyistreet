@@ -10,6 +10,9 @@ npm run textures   # egyszer: CC0 fotótextúrák letöltése (Poly Haven), ~40�
 npm run dev        # http://localhost:5173
 ```
 
+Céges hálózaton (proxy mögött) a textúraletöltés így megy:
+`HTTPS_PROXY=http://proxy.cim:port npm run textures`
+
 Build: `npm run build` → `dist/` (bármilyen statikus tárhelyre feltölthető).
 Gyengébb gépen: `?q=low` a cím végén.
 

@@ -1,7 +1,7 @@
 {
   "name": "gardonyi-utca",
   "version": "1.0.0",
-  "description": "3D TPS s\u00e9ta a piliscsabai G\u00e1rdonyi G\u00e9za utc\u00e1ban (Three.js)",
+  "description": "3D TPS séta a piliscsabai Gárdonyi Géza utcában (Three.js)",
   "main": "index.js",
   "scripts": {
     "dev": "vite",
@@ -16,6 +16,7 @@
     "three": "^0.187.0"
   },
   "devDependencies": {
+    "undici": "^7.30.2",
     "vite": "^8.4.0"
   },
   "type": "module"

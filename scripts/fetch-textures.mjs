@@ -7,6 +7,14 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+// Corporate networks: honour HTTPS_PROXY / HTTP_PROXY / NO_PROXY (Node's fetch ignores them by default)
+const PROXY = process.env.HTTPS_PROXY || process.env.https_proxy || process.env.HTTP_PROXY || process.env.http_proxy;
+if (PROXY) {
+  const { EnvHttpProxyAgent, setGlobalDispatcher } = await import('undici');
+  setGlobalDispatcher(new EnvHttpProxyAgent());
+  console.log(`Proxy: ${PROXY.replace(/\/\/[^@]*@/, '//***@')}`);
+}
+
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', 'public', 'textures');
 const UA = { 'User-Agent': 'gardonyi-utca-game/1.0 (texture fetch script)' };
 const HI = process.argv.includes('--hi');
@@ -27,9 +35,24 @@ const SLOTS = {
 const up = (r) => (HI ? ({ '1k': '2k', '2k': '4k' })[r] : r);
 
 async function json(url) {
-  const r = await fetch(url, { headers: UA });
+  const r = await fetch(url, { headers: UA, signal: AbortSignal.timeout(20000) });
   if (!r.ok) return null;
   return r.json();
+}
+
+// connectivity check with a clear message instead of a stack trace
+try {
+  await fetch('https://api.polyhaven.com/types', { headers: UA, signal: AbortSignal.timeout(15000) });
+} catch (e) {
+  const code = e?.cause?.code || e?.cause?.errors?.[0]?.code || e?.cause?.message || e?.message;
+  console.error(`\n✗ Nem érhető el az api.polyhaven.com (${code}).`);
+  console.error(PROXY
+    ? '  A megadott proxyn keresztül sem sikerült – ellenőrizd a proxy címét / jogosultságát.'
+    : '  Valószínűleg proxy vagy tűzfal mögött vagy. Add meg a proxyt, pl.:\n' +
+      '    HTTPS_PROXY=http://proxy.ceg.hu:8080 npm run textures\n' +
+      '  (a böngésződ / `git config --get http.proxy` / `env | grep -i proxy` megmutathatja a címet)');
+  console.error('  A játék textúrák nélkül is fut, ilyenkor a kódból generáltakat használja.\n');
+  process.exit(1);
 }
 
 let catalog = null;
@@ -58,7 +81,7 @@ function pick(files, keys, res) {
 }
 
 async function download(url, file) {
-  const r = await fetch(url, { headers: UA });
+  const r = await fetch(url, { headers: UA, signal: AbortSignal.timeout(120000) });
   if (!r.ok) throw new Error(`${r.status} ${url}`);
   await mkdir(dirname(file), { recursive: true });
   await writeFile(file, Buffer.from(await r.arrayBuffer()));
