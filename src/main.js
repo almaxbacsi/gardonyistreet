@@ -1,12 +1,9 @@
 import * as THREE from 'three';
 import { Sky } from 'three/examples/jsm/objects/Sky.js';
 import { HDRLoader } from 'three/examples/jsm/loaders/HDRLoader.js';
-import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
-import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
-import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
-import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
+import { PostPipeline } from './render/post.js';
+import { installSoftShadows } from './render/softShadows.js';
 import { loadPhotoTextures } from './world/photoTextures.js';
-import { GradeShader } from './grade.js';
 import { createMaterials } from './world/materials.js';
 import { setAnisotropy } from './world/textures.js';
 import { buildTerrain } from './world/terrain.js';
@@ -32,14 +29,17 @@ const step = async (msg) => { progress.textContent = msg; await new Promise((r) 
 
 async function init() {
   const canvas = document.getElementById('c');
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: QUALITY === 'high', powerPreference: 'high-performance' });
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(devicePixelRatio, QUALITY === 'high' ? 1.5 : 1));
   renderer.setSize(innerWidth, innerHeight);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 0.9;
   renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFShadowMap;
+  // BasicShadowMap gives us the raw depth texture; softShadows.js replaces the lookup with PCSS
+  renderer.shadowMap.type = THREE.BasicShadowMap;
+  installSoftShadows({ width: 90, height: 90, depth: 219 },
+    QUALITY === 'high' ? { search: 8, taps: 16 } : { search: 5, taps: 8, maxPenumbra: 0.4 });
   setAnisotropy(Math.min(8, renderer.capabilities.getMaxAnisotropy()));
 
   const scene = new THREE.Scene();
@@ -150,16 +150,14 @@ async function init() {
     renderer.setSize(innerWidth, innerHeight);
   });
 
-  // ---- post-processing: tone mapping + warm "San Andreas" style grade + vignette
-  const rt = new THREE.WebGLRenderTarget(innerWidth, innerHeight, { type: THREE.HalfFloatType, samples: QUALITY === 'high' ? 4 : 0 });
-  const composer = new EffectComposer(renderer, rt);
-  composer.setPixelRatio(renderer.getPixelRatio());
-  composer.addPass(new RenderPass(scene, camera));
-  composer.addPass(new OutputPass());
-  const grade = new ShaderPass(GradeShader);
-  composer.addPass(grade);
-  addEventListener('resize', () => composer.setSize(innerWidth, innerHeight));
-  addEventListener('keydown', (e) => { if (e.code === 'KeyG') { grade.enabled = !grade.enabled; hud.showToast(grade.enabled ? 'Színkorrekció: be' : 'Színkorrekció: ki'); } });
+  // ---- post-processing: SSAO + tone mapping + warm grade (src/render/post.js)
+  const post = new PostPipeline(renderer, scene, camera,
+    QUALITY === 'high' ? { msaa: 4, ao: true, aoTaps: 12 } : { msaa: 0, ao: true, aoTaps: 6, renderScale: 0.85 });
+  addEventListener('resize', () => post.setSize(innerWidth, innerHeight));
+  addEventListener('keydown', (e) => {
+    if (e.code === 'KeyG') { post.grade = !post.grade; hud.showToast(post.grade ? 'Színkorrekció: be' : 'Színkorrekció: ki'); }
+    if (e.code === 'KeyO') { post.s.ao = post.s.ao === false; hud.showToast(post.s.ao ? 'Árnyékolás (AO): be' : 'Árnyékolás (AO): ki'); }
+  });
 
   // warm up shaders
   renderer.compile(scene, camera);
@@ -178,12 +176,12 @@ async function init() {
     sun.target.position.set(tx, p.y, tz);
     sun.position.set(tx + sunDir.x * 100, p.y + sunDir.y * 100, tz + sunDir.z * 100);
     hud.update(dt, player);
-    composer.render(dt);
+    post.render();
     dev.update();
   });
 
   // debug hooks
-  window.__game = { scene, camera, player, renderer, THREE, composer, grade };
+  window.__game = { scene, camera, player, renderer, THREE, post };
 }
 
 init().catch((e) => {
