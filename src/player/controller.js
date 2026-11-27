@@ -37,6 +37,7 @@ export class PlayerController {
     this.bob = 0;      // head-bob phase
     this.bobAmp = 0;
     this.onModeChange = null;
+    this.aimLock = false; // body turns toward the camera direction (set while using a tool)
     this._bind();
   }
 
@@ -65,10 +66,13 @@ export class PlayerController {
       const lim = this.mode === 'fps' ? [-1.45, 1.4] : [-1.1, 0.6];
       this.pitch = THREE.MathUtils.clamp(this.pitch - e.movementY * this.sensitivity, lim[0], lim[1]);
     });
-    addEventListener('wheel', (e) => {
-      if (this.mode === 'fps') return;
-      this.camDist = THREE.MathUtils.clamp(this.camDist + Math.sign(e.deltaY) * 0.4, 1.6, 7);
-    }, { passive: true });
+    // C cycles the third-person camera distance (the mouse wheel switches tools)
+    const dists = [2.3, 3.4, 5.2];
+    addEventListener('keydown', (e) => {
+      if (e.code !== 'KeyC' || e.repeat || this.mode === 'fps') return;
+      const i = dists.findIndex((d) => d >= this.camDist - 0.05);
+      this.camDist = dists[(i + 1) % dists.length];
+    });
   }
 
   setMode(mode) {
@@ -118,12 +122,12 @@ export class PlayerController {
     // facing: in first person the body follows the view; in third person it turns toward the motion
     const hs = Math.hypot(this.vel.x, this.vel.z);
     let turn = 0;
-    if (this.mode === 'fps') {
+    if (this.mode === 'fps' || this.aimLock) {
       const want = this.yaw + Math.PI;
       let diff = want - this.facing;
       diff = Math.atan2(Math.sin(diff), Math.cos(diff));
       turn = diff;
-      this.facing += diff;
+      this.facing += this.mode === 'fps' ? diff : diff * Math.min(1, dt * 12);
     } else if (hs > 0.2 && wish.lengthSq() > 0) {
       const want = Math.atan2(this.vel.x, this.vel.z);
       let diff = want - this.facing;
@@ -167,7 +171,8 @@ export class PlayerController {
       const fwd = new THREE.Vector3(-Math.sin(this.yaw), 0, -Math.cos(this.yaw));
       const a = this.bobAmp;
       const eye = new THREE.Vector3(this.pos.x, this.pos.y + EYE, this.pos.z)
-        .addScaledVector(fwd, 0.14)
+        // looking down moves the eyes forward so the camera clears the chest and collar
+        .addScaledVector(fwd, 0.14 + 0.3 * THREE.MathUtils.smoothstep(-this.pitch, 0.2, 1.2))
         .addScaledVector(right, Math.sin(this.bob) * 0.025 * a);
       eye.y += Math.abs(Math.cos(this.bob)) * 0.045 * a - 0.02 * a;
       cam.lerp(eye, f);

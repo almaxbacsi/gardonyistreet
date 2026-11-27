@@ -17,7 +17,7 @@ Build: `npm run build` → `dist/` (bármilyen statikus tárhelyre feltölthető
 Grafikai beállítás: a szünet menüben (Alacsony / Közepes / Magas / Ultra / Auto), a választást a böngésző megjegyzi. Az első indításkor a játék a videókártya alapján választ. URL-ből is felülírható: `?q=low|medium|high|ultra`.
 
 **Irányítás:** WASD mozgás, egér nézelődés, Shift futás, Space ugrás, görgő kameratávolság,
-V belső (FPS) / külső (TPS) nézet, G színkorrekció, O ambient occlusion, L fénysugarak, B bloom ki/be; Esc szünet.
+Tools: `1`–`7` or mouse wheel to switch (`0` = empty hands), left click to use, `C` = camera distance. V belső (FPS) / külső (TPS) nézet, G színkorrekció, O ambient occlusion, L fénysugarak, B bloom ki/be; Esc szünet.
 
 ## Mi honnan jön
 
