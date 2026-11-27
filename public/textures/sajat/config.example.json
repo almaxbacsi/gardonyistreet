@@ -1,0 +1,6 @@
+{
+  "_info": "Nevezd át config.json-ra. Kulcs = textúra hely, color = a fotó fájlneve ebben a mappában, meters = hány méter széles felületet mutat a fotó. A saját fotók felülírják a letöltött CC0 textúrákat.",
+  "_helyek": "grass (fű), dirt (földút, padka), concrete (betonlap út), plaster (vakolat, házanként színezve), roof (cserép, színezve), planks (deszka, színezve), bark (fakéreg), block (betonblokk fal), stone (kőburkolatú oszlop)",
+  "concrete": { "color": "betonlap.jpg", "meters": 2.0 },
+  "planks": { "color": "deszkakerites.jpg", "meters": 1.5, "rotate": false }
+}

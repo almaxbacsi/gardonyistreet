@@ -1,0 +1,22 @@
+{
+  "name": "gardonyi-utca",
+  "version": "1.0.0",
+  "description": "3D TPS s\u00e9ta a piliscsabai G\u00e1rdonyi G\u00e9za utc\u00e1ban (Three.js)",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "textures": "node scripts/fetch-textures.mjs"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "three": "^0.187.0"
+  },
+  "devDependencies": {
+    "vite": "^8.4.0"
+  },
+  "type": "module"
+}

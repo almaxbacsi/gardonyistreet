@@ -1,0 +1,5 @@
+node_modules
+dist
+public/textures/*/
+!public/textures/sajat/
+public/textures/manifest.json
