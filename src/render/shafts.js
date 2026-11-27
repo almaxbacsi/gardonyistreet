@@ -57,6 +57,10 @@ export class SunShafts {
     this.tmp = new THREE.Vector3();
   }
 
+  setTaps(n) {
+    if (this.mRad.defines.TAPS !== n) { this.mRad.defines.TAPS = n; this.mRad.needsUpdate = true; }
+  }
+
   /** returns a texture for PostPipeline's composite (rgb added, a = 1) or null when the sun is off screen */
   render(post) {
     if (!this.enabled) return null;

@@ -100,6 +100,7 @@ export class DynamicSky {
       vertexShader: SKY_VERT, fragmentShader: SKY_FRAG, uniforms: this.uniforms,
       defines: { CLOUD_OCT: cloudOctaves }, side: THREE.BackSide, depthWrite: false, fog: false, toneMapped: false,
     });
+    this.material = mat;
     this.mesh = new THREE.Mesh(new THREE.SphereGeometry(1000, 48, 24), mat);
     this.mesh.frustumCulled = false;
     this.mesh.renderOrder = -10;
@@ -117,6 +118,19 @@ export class DynamicSky {
     this.pmremRT = null;
     this.sinceEnv = Infinity;
     this.wind = new THREE.Vector2(0.006, 0.0025); // cloud-plane units per second
+  }
+
+  setQuality({ cloudOctaves, envSize, envInterval }) {
+    if (cloudOctaves && cloudOctaves !== this.material.defines.CLOUD_OCT) {
+      this.material.defines.CLOUD_OCT = cloudOctaves; this.material.needsUpdate = true;
+    }
+    if (envSize && envSize !== this.cubeRT.width) {
+      this.cubeRT.dispose();
+      this.cubeRT = new THREE.WebGLCubeRenderTarget(envSize, { type: THREE.HalfFloatType });
+      this.cubeCam.renderTarget = this.cubeRT;
+      this.sinceEnv = Infinity;
+    }
+    if (envInterval) this.envInterval = envInterval;
   }
 
   /** colours for a hemisphere light, derived from the sky model */

@@ -19,6 +19,11 @@
       .keys { display: grid; grid-template-columns: auto 1fr; gap: 8px 16px; font-size: 14px; margin-bottom: 22px; }
       .keys kbd { display: inline-block; min-width: 18px; padding: 2px 7px; border-radius: 5px; background: #f3efe4; color: #1e221a; font: 600 12px system-ui; text-align: center; margin-right: 3px; }
       #start { font-weight: 600; font-size: 16px; padding: 10px 0 0; }
+      #gfx { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 16px; font-size: 13px; cursor: default; }
+      #gfx span { opacity: .8; margin-right: 4px; }
+      #gfx button { font: 600 12px system-ui; padding: 4px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,.25); background: rgba(255,255,255,.08); color: #f3efe4; cursor: pointer; }
+      #gfx button.on { background: #f3efe4; color: #1e221a; }
+      #gfx .note { flex-basis: 100%; font-size: 12px; opacity: .75; }
       #progress { font-size: 13px; opacity: .7; margin-top: 8px; min-height: 18px; }
       #hud { position: fixed; inset: 0; pointer-events: none; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.6); }
       #addr { position: absolute; left: 18px; bottom: 16px; display: flex; flex-direction: column; gap: 2px; font-size: 15px; }
@@ -57,6 +62,7 @@
         </div>
         <div id="start">Betöltés…</div>
         <div id="progress"></div>
+        <div id="gfx"></div>
       </div>
     </div>
     <script type="module" src="/src/main.js"></script>
