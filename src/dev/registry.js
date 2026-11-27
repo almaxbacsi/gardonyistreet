@@ -1,7 +1,7 @@
 // Registry of labelled scene objects, so they can be referred to by a stable id
-// (e.g. "fa-31", "haz-G9", "kerites-12") when asking for changes.
+// (e.g. "tree-31", "house-G9", "fence-12") when asking for changes.
 // Ids come from the order of the lists in src/world/layout.js (and OSM house numbers),
-// so `fa-31` = LANDMARK_TREES[30], `kerites-12` = FENCES[11], etc.
+// so `tree-31` = LANDMARK_TREES[30], `fence-12` = FENCES[11], etc.
 import * as THREE from 'three';
 import { project } from '../world/geo.js';
 
@@ -9,7 +9,7 @@ const items = [];
 const counters = {};
 
 /**
- * @param {string} kind   category prefix, e.g. 'fa'
+ * @param {string} kind   category prefix, e.g. 'tree'
  * @param {number[]} pos  world position [X, Y, Z] for the label
  * @param {string} desc   short human description
  * @param {string} [id]   explicit id (otherwise kind-<n>)

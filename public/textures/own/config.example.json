@@ -1,0 +1,6 @@
+{
+  "_info": "Rename to config.json. Key = texture slot, color = photo file name in this folder, meters = how many metres of surface the photo shows. Your own photos override the downloaded CC0 textures.",
+  "_slots": "grass, dirt (dirt road, verge), concrete (concrete slab road), plaster (tinted per house), roof (tiles, tinted), planks (tinted), bark, block (concrete block wall), stone (stone-clad pillars)",
+  "concrete": { "color": "concrete-slab.jpg", "meters": 2.0 },
+  "planks": { "color": "plank-fence.jpg", "meters": 1.5, "rotate": false }
+}

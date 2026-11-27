@@ -1,13 +1,13 @@
 // Dev mode: floating labels with stable ids over every registered object.
 //   F2 (or ?dev in the URL)  – toggle labels
 //   I                        – identify the object under the crosshair (copied to clipboard)
-//   console: __dev.list(), __dev.find('fa-31'), __dev.goto('haz-G9')
+//   console: __dev.list(), __dev.find('tree-31'), __dev.goto('house-G9')
 import * as THREE from 'three';
 import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
 import { allItems, findById } from './registry.js';
 import { project } from '../world/geo.js';
 
-const COLORS = { haz: '#ffb74d', fa: '#81c784', soveny: '#aed581', kerites: '#90caf9', oszlop: '#e0e0e0', auto: '#f48fb1', ut: '#fff176', terko: '#bcaaa4' };
+const COLORS = { house: '#ffb74d', tree: '#81c784', hedge: '#aed581', fence: '#90caf9', pole: '#e0e0e0', car: '#f48fb1', road: '#fff176', paving: '#bcaaa4' };
 
 export class DevMode {
   constructor({ scene, camera, player, hud }) {
@@ -60,7 +60,7 @@ export class DevMode {
     this.enabled = on;
     this.group.visible = on;
     this.info.style.display = on ? 'block' : 'none';
-    this.hud.showToast(on ? 'Fejlesztői mód: BE (I = célzott tárgy azonosítója)' : 'Fejlesztői mód: KI');
+    this.hud.showToast(on ? 'Dev mode: ON (I = id of the targeted object)' : 'Dev mode: OFF');
   }
 
   identify() {
@@ -75,11 +75,11 @@ export class DevMode {
       const score = scr + dist * 0.004;
       if (scr < 0.25 && score < bs) { bs = score; best = it; }
     }
-    if (!best) { this.hud.showToast('Nincs címkézett tárgy a célkereszt közelében'); return; }
+    if (!best) { this.hud.showToast('No labelled object near the crosshair'); return; }
     const text = `${best.id} – ${best.desc}`;
     navigator.clipboard?.writeText(best.id).catch(() => {});
     console.info('[dev]', text, '|', best.src);
-    this.hud.showToast(`${text} (vágólapra másolva)`, 4);
+    this.hud.showToast(`${text} (copied to clipboard)`, 4);
     for (const l of this.labels) l.element.classList.toggle('picked', l.userData.item === best);
   }
 
@@ -93,7 +93,7 @@ export class DevMode {
     }
     const pos = this.player.pos;
     const sd = project(pos.x, -pos.z);
-    this.info.innerHTML = `DEV · <b>s ${sd.s.toFixed(1)} m, d ${sd.d.toFixed(1)} m</b> (s: távolság a Szent István útjától, d: + ÉNy / − DK) · X ${pos.x.toFixed(1)} Z ${pos.z.toFixed(1)} · I = azonosít · F2 = ki`;
+    this.info.innerHTML = `DEV · <b>s ${sd.s.toFixed(1)} m, d ${sd.d.toFixed(1)} m</b> (s: distance from Szent István király útja, d: + NW / − SE) · X ${pos.x.toFixed(1)} Z ${pos.z.toFixed(1)} · I = identify · F2 = off`;
     this.renderer.render(this.scene, this.camera);
   }
 }

@@ -26,7 +26,7 @@ import { DevMode } from './dev/devmode.js';
 const params = new URLSearchParams(location.search);
 const QUALITY = resolveQuality(); // { name, source }
 let Q = PRESETS[QUALITY.name];
-console.info('Grafika:', QUALITY.name, `(${QUALITY.source}${QUALITY.gpu ? ', ' + QUALITY.gpu : ''})`);
+console.info('Graphics:', QUALITY.name, `(${QUALITY.source}${QUALITY.gpu ? ', ' + QUALITY.gpu : ''})`);
 
 const progress = document.getElementById('progress');
 const startEl = document.getElementById('start');
@@ -53,7 +53,7 @@ async function init() {
   const uniforms = { uTime: { value: 0 } };
 
   // ---- sky, sun, environment
-  await step('Égbolt és fények…');
+  await step('Sky and lights…');
   // late-afternoon sun from the south-west (Street View imagery has warm side light)
   const elev = THREE.MathUtils.degToRad(34), azim = THREE.MathUtils.degToRad(215);
   const sunDir = new THREE.Vector3(Math.sin(azim) * Math.cos(elev), Math.sin(elev), -Math.cos(azim) * Math.cos(elev));
@@ -77,27 +77,27 @@ async function init() {
   scene.add(hemi);
 
   // ---- world
-  await step('Fotótextúrák betöltése…');
+  await step('Loading photo textures…');
   const photos = await loadPhotoTextures(Math.min(8, renderer.capabilities.getMaxAnisotropy()));
-  await step('Textúrák…');
+  await step('Textures…');
   const M = createMaterials(QUALITY.name, photos);
-  console.info('Fotótextúrák:', Object.keys(photos).length ? M.photoUsed : 'nincs (procedurális textúrák)');
-  await step('Domborzat (OSM + Street View magasságok)…');
+  console.info('Photo textures:', Object.keys(photos).length ? M.photoUsed : 'none (procedural textures)');
+  await step('Terrain (OSM + Street View heights)…');
   const forest = OSM.w.filter((w) => w.k === 'l' && w.v === 'forest').map(wayPoints);
   const terrain = buildTerrain(M, { center: [0, 10], size: 380, res: Q.terrainRes, forestPolys: forest });
   scene.add(terrain.near, terrain.far);
   await step('Utak…');
   scene.add(buildRoads(M));
-  await step('Házak…');
+  await step('Houses…');
   const bld = buildBuildings(M);
   scene.add(bld.group);
-  await step('Kerítések…');
+  await step('Fences…');
   const fences = buildFences(M);
   scene.add(fences.group);
-  await step('Növényzet…');
+  await step('Vegetation…');
   const veg = buildVegetation(M, { vegScale: Q.vegScale, uniforms });
   scene.add(veg.group);
-  await step('Tárgyak…');
+  await step('Props…');
   const props = buildProps(M);
   scene.add(props.group);
 
@@ -125,20 +125,20 @@ async function init() {
   scene.add(particles.sparks.points, particles.dust.points);
   const tools = new ToolSystem({ scene, character, player, hud, particles, raycastTargets: occluders });
   player.onModeChange = (m) => {
-    hud.showToast(m === 'fps' ? 'Belső nézet (V)' : 'Külső nézet (V)');
+    hud.showToast(m === 'fps' ? 'First-person view (V)' : 'Third-person view (V)');
     document.getElementById('cross').classList.toggle('fps', m === 'fps');
   };
   const dev = new DevMode({ scene, camera, player, hud });
 
   // ---- start / pause
-  startEl.textContent = 'Kattints a kezdéshez';
+  startEl.textContent = 'Click to start';
   progress.textContent = '';
   overlay.addEventListener('click', () => canvas.requestPointerLock());
   canvas.addEventListener('click', () => { if (!player.locked) canvas.requestPointerLock(); });
   document.addEventListener('pointerlockchange', () => {
     const locked = document.pointerLockElement === canvas;
     overlay.classList.toggle('hidden', locked);
-    if (!locked) startEl.textContent = 'Szünet – kattints a folytatáshoz';
+    if (!locked) startEl.textContent = 'Paused – click to continue';
   });
 
   addEventListener('resize', () => {
@@ -178,11 +178,11 @@ async function init() {
   };
   const gfx = document.getElementById('gfx');
   const renderGfx = (note = '') => {
-    gfx.innerHTML = '<span>Grafika:</span>' + ORDER.map((k) =>
+    gfx.innerHTML = '<span>Graphics:</span>' + ORDER.map((k) =>
       `<button data-q="${k}" class="${k === current ? 'on' : ''}">${PRESETS[k].label}</button>`).join('')
       + '<button data-q="auto">Auto</button>' + (note ? `<div class="note">${note}</div>` : '');
   };
-  renderGfx(QUALITY.source === 'auto' ? 'automatikusan választva' : '');
+  renderGfx(QUALITY.source === 'auto' ? 'chosen automatically' : '');
   gfx.addEventListener('click', (e) => {
     e.stopPropagation();
     const b = e.target.closest('button'); if (!b) return;
@@ -190,15 +190,15 @@ async function init() {
     let name = b.dataset.q;
     if (name === 'auto') { saveQuality(null); name = resolveQuality().name; } else saveQuality(name);
     const reload = applyLive(name);
-    renderGfx(reload ? 'Növényzet és árnyék-szűrés: újratöltés után <button data-reload="1">Újratöltés</button>' : '');
-    hud.showToast('Grafika: ' + PRESETS[name].label);
+    renderGfx(reload ? 'Vegetation and shadow filtering apply after a reload <button data-reload="1">Reload</button>' : '');
+    hud.showToast('Graphics: ' + PRESETS[name].label);
   });
   addEventListener('resize', () => post.setSize(innerWidth, innerHeight));
   addEventListener('keydown', (e) => {
-    if (e.code === 'KeyG') { post.grade = !post.grade; hud.showToast(post.grade ? 'Színkorrekció: be' : 'Színkorrekció: ki'); }
-    if (e.code === 'KeyL') { shafts.enabled = !shafts.enabled; hud.showToast(shafts.enabled ? 'Fénysugarak: be' : 'Fénysugarak: ki'); }
-    if (e.code === 'KeyB') { post.bloom.enabled = !post.bloom.enabled; hud.showToast(post.bloom.enabled ? 'Bloom: be' : 'Bloom: ki'); }
-    if (e.code === 'KeyO') { post.s.ao = post.s.ao === false; hud.showToast(post.s.ao ? 'Árnyékolás (AO): be' : 'Árnyékolás (AO): ki'); }
+    if (e.code === 'KeyG') { post.grade = !post.grade; hud.showToast(post.grade ? 'Color grading: on' : 'Color grading: off'); }
+    if (e.code === 'KeyL') { shafts.enabled = !shafts.enabled; hud.showToast(shafts.enabled ? 'Sun shafts: on' : 'Sun shafts: off'); }
+    if (e.code === 'KeyB') { post.bloom.enabled = !post.bloom.enabled; hud.showToast(post.bloom.enabled ? 'Bloom: on' : 'Bloom: off'); }
+    if (e.code === 'KeyO') { post.s.ao = post.s.ao === false; hud.showToast(post.s.ao ? 'Ambient occlusion: on' : 'Ambient occlusion: off'); }
   });
 
   // warm up shaders
@@ -232,5 +232,5 @@ async function init() {
 
 init().catch((e) => {
   console.error(e);
-  progress.textContent = 'Hiba: ' + e.message;
+  progress.textContent = 'Error: ' + e.message;
 });

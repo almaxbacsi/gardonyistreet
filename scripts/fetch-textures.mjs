@@ -45,13 +45,13 @@ try {
   await fetch('https://api.polyhaven.com/types', { headers: UA, signal: AbortSignal.timeout(15000) });
 } catch (e) {
   const code = e?.cause?.code || e?.cause?.errors?.[0]?.code || e?.cause?.message || e?.message;
-  console.error(`\n✗ Nem érhető el az api.polyhaven.com (${code}).`);
+  console.error(`\n✗ Cannot reach api.polyhaven.com (${code}).`);
   console.error(PROXY
-    ? '  A megadott proxyn keresztül sem sikerült – ellenőrizd a proxy címét / jogosultságát.'
-    : '  Valószínűleg proxy vagy tűzfal mögött vagy. Add meg a proxyt, pl.:\n' +
-      '    HTTPS_PROXY=http://proxy.ceg.hu:8080 npm run textures\n' +
-      '  (a böngésződ / `git config --get http.proxy` / `env | grep -i proxy` megmutathatja a címet)');
-  console.error('  A játék textúrák nélkül is fut, ilyenkor a kódból generáltakat használja.\n');
+    ? '  It failed through the given proxy as well – check the proxy address and your access to it.'
+    : '  You are probably behind a proxy or firewall. Set the proxy, e.g.:\n' +
+      '    HTTPS_PROXY=http://proxy.example.com:8080 npm run textures\n' +
+      '  (your browser settings, `git config --get http.proxy` or `env | grep -i proxy` can show the address)');
+  console.error('  The game also runs without them, using procedurally generated textures.\n');
   process.exit(1);
 }
 
@@ -99,7 +99,7 @@ for (const [slot, cfg] of Object.entries(SLOTS)) {
     id = await search(cfg.kw, taken);
     files = id ? await json(`https://api.polyhaven.com/files/${id}`) : null;
   }
-  if (!id || !files) { console.warn(`✗ ${slot}: nincs találat`); continue; }
+  if (!id || !files) { console.warn(`✗ ${slot}: no match`); continue; }
   taken.add(id);
   const info = await json(`https://api.polyhaven.com/info/${id}`);
   const meters = info?.dimensions ? Math.max(0.3, info.dimensions[0] / 1000) : 2;
@@ -120,4 +120,4 @@ for (const [slot, cfg] of Object.entries(SLOTS)) {
 }
 await mkdir(ROOT, { recursive: true });
 await writeFile(join(ROOT, 'manifest.json'), JSON.stringify(manifest, null, 2));
-console.log(`\nKész: ${Object.keys(manifest.slots).length} textúra → public/textures/manifest.json`);
+console.log(`\nDone: ${Object.keys(manifest.slots).length} textures → public/textures/manifest.json`);

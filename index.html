@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="hu">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -34,7 +34,7 @@
       #toast.show { opacity: 1; }
       .devlabel { font: 600 11px ui-monospace, monospace; color: #fff; background: rgba(10,12,10,.72); border: 1px solid; border-radius: 4px; padding: 1px 5px; white-space: nowrap; transform: translateY(-50%); }
       .devlabel.picked { background: #ffeb3b; color: #111; }
-      #devinfo { display: none; position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 6; font: 12px ui-monospace, monospace; color: #fff; background: rgba(10,12,10,.7); padding: 5px 10px; border-radius: 6px; pointer-events: none; }
+      #devinfo { display: none; position: fixed; left: 50%; bottom: 52px; transform: translateX(-50%); z-index: 6; font: 12px ui-monospace, monospace; color: #fff; background: rgba(10,12,10,.7); padding: 5px 10px; border-radius: 6px; pointer-events: none; }
       #hotbar { position: absolute; right: 16px; bottom: 16px; display: flex; gap: 4px; }
       #hotbar .slot { font-size: 11px; padding: 4px 8px; border-radius: 6px; background: rgba(15,18,14,.45); border: 1px solid rgba(255,255,255,.15); opacity: .75; }
       #hotbar .slot b { margin-right: 5px; opacity: .7; }
@@ -57,18 +57,18 @@
         <h1>Gárdonyi Géza utca</h1>
         <p class="sub">Piliscsaba, Márialiget</p>
         <div class="keys">
-          <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></div><div>mozgás</div>
-          <div><kbd>Egér</kbd></div><div>körbenézés</div>
-          <div><kbd>Shift</kbd></div><div>futás</div>
-          <div><kbd>Space</kbd></div><div>ugrás</div>
+          <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></div><div>move</div>
+          <div><kbd>Mouse</kbd></div><div>look around</div>
+          <div><kbd>Shift</kbd></div><div>run</div>
+          <div><kbd>Space</kbd></div><div>jump</div>
           <div><kbd>Left click</kbd></div><div>use tool</div>
-          <div><kbd>1</kbd>–<kbd>7</kbd> <kbd>Görgő</kbd></div><div>switch tool (<kbd>0</kbd> empty hands)</div>
-          <div><kbd>V</kbd></div><div>belső / külső nézet</div>
+          <div><kbd>1</kbd>–<kbd>7</kbd> <kbd>Wheel</kbd></div><div>switch tool (<kbd>0</kbd> empty hands)</div>
+          <div><kbd>V</kbd></div><div>first / third person</div>
           <div><kbd>C</kbd></div><div>camera distance (third person)</div>
-          <div><kbd>Esc</kbd></div><div>szünet</div>
-          <div><kbd>F2</kbd></div><div>fejlesztői mód (tárgy-azonosítók)</div>
+          <div><kbd>Esc</kbd></div><div>pause</div>
+          <div><kbd>F2</kbd></div><div>dev mode (object ids)</div>
         </div>
-        <div id="start">Betöltés…</div>
+        <div id="start">Loading…</div>
         <div id="progress"></div>
         <div id="gfx"></div>
       </div>

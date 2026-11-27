@@ -1,6 +1,7 @@
 // Loads photographic textures if present:
 //   public/textures/manifest.json   – written by `npm run textures` (CC0 sets from Poly Haven)
-//   public/textures/sajat/config.json – your own photos, these override the downloaded ones
+//   public/textures/own/config.json – your own photos, these override the downloaded ones
+//   (the former folder name public/textures/sajat/ is still read as a fallback)
 // Anything missing falls back to the procedural textures.
 import * as THREE from 'three';
 
@@ -31,7 +32,9 @@ export async function loadPhotoTextures(aniso = 8) {
   const out = {};
   const base = 'textures/';
   const manifest = await getJSON(base + 'manifest.json');
-  const own = await getJSON(base + 'sajat/config.json');
+  let ownDir = 'own/';
+  let own = await getJSON(base + ownDir + 'config.json');
+  if (!own) { ownDir = 'sajat/'; own = await getJSON(base + ownDir + 'config.json'); } // legacy folder name
   const jobs = [];
   const add = (slot, e, dir, source) => {
     jobs.push((async () => {
@@ -47,7 +50,7 @@ export async function loadPhotoTextures(aniso = 8) {
   jobs.length = 0;
   if (own) for (const [slot, e] of Object.entries(own)) {
     if (slot.startsWith('_')) continue;
-    add(slot, typeof e === 'string' ? { color: e } : e, base + 'sajat/', 'own');
+    add(slot, typeof e === 'string' ? { color: e } : e, base + ownDir, 'own');
   }
   await Promise.all(jobs);
   return out;

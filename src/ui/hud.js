@@ -43,8 +43,8 @@ export class Hud {
       if (d < bd) { bd = d; best = `${street} ${num}.`; }
     }
     const p = project(x, y);
-    this.addr.innerHTML = `<b>Piliscsaba, ${bd < 30 ? best : 'Gárdonyi Géza utca'}</b><span>${Math.max(0, p.s).toFixed(0)} m a Szent István király útjától</span>`;
-    if (player.hitBoundary && this.toastT <= 0) this.showToast(p.s > PLAY.sMax - 1 ? 'Innen nincs Street View felvétel, itt ér véget a bejárható rész' : 'Ide nem lehet továbbmenni');
+    this.addr.innerHTML = `<b>Piliscsaba, ${bd < 30 ? best : 'Gárdonyi Géza utca'}</b><span>${Math.max(0, p.s).toFixed(0)} m from Szent István király útja</span>`;
+    if (player.hitBoundary && this.toastT <= 0) this.showToast(p.s > PLAY.sMax - 1 ? 'No Street View imagery beyond this point – the walkable area ends here' : 'You can\'t go any further this way');
 
     this.drawMap(x, y, player.yaw, player.facing);
   }
@@ -86,7 +86,7 @@ export class Hud {
     // north marker
     c.save(); c.translate(S / 2, S / 2); c.rotate(yaw);
     c.fillStyle = '#fff'; c.font = 'bold 11px system-ui'; c.textAlign = 'center';
-    c.fillText('É', 0, -S / 2 + 14);
+    c.fillText('N', 0, -S / 2 + 14);
     c.restore();
   }
 }

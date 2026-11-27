@@ -1,7 +1,7 @@
 # CLAUDE.md – Gárdonyi Géza utca (browser 3D game)
 
 Browser 3D walking game set in Gárdonyi Géza utca, Piliscsaba (Three.js + Vite). Not a shooter:
-the player is a civilian with suburban tools. See README.md (Hungarian) for the user-facing docs.
+the player is a civilian with suburban tools. See README.md for the user-facing docs.
 
 ## Repository workflow (mandatory)
 
@@ -23,7 +23,10 @@ the player is a civilian with suburban tools. See README.md (Hungarian) for the 
   setting "Automatically delete head branches" takes care of that.
 - GitHub GraphQL is not available from Claude sessions: use the REST API via `gh api`
   (`repos/almaxbacsi/gardonyistreet/issues`, `/pulls`, `/pulls/<n>/merge`).
-- Commit messages and issues/PRs in English; in-game UI text in Hungarian.
+- **Everything is in English**: code, comments, commits, issues/PRs, docs and all in-game UI text.
+  Only the setting is in Hungary: place names and addresses stay as they are.
+- Never paste the user's requests verbatim into issues, comments or docs: write them up in clear
+  English, correcting mistakes and rephrasing where needed.
 - End commit messages with the Co-Authored-By / Claude-Session lines given by the session;
   end PR bodies with the "Generated with Claude Code" line.
 
@@ -33,7 +36,7 @@ the player is a civilian with suburban tools. See README.md (Hungarian) for the 
   (fences, poles, props, trees, hedges, aprons). Coordinates: `s` = metres along the street from
   the Szent István király útja junction, `d` = lateral offset (+ north-west, − south-east).
 - Every placed object registers a stable dev id (`src/dev/registry.js`): ids follow list order
-  (`fa-31` = `LANDMARK_TREES[30]`), so **append** to layout lists instead of inserting, or ids shift.
+  (`tree-31` = `LANDMARK_TREES[30]`), so **append** to layout lists instead of inserting, or ids shift.
 - Data coordinates are x = east, y = north; Three.js world is X = x, Z = −y.
 - Heights come only from `heightAt()` / `roadHeight()` in `src/world/geo.js`.
 - Code and comments in English. Keep files focused (one system per module).
@@ -44,7 +47,7 @@ the player is a civilian with suburban tools. See README.md (Hungarian) for the 
 
 - Never use Google Street View imagery as textures or for model extraction; it is reference only.
 - Allowed sources: OpenStreetMap (ODbL), CC0 (Poly Haven, ambientCG), the user's own photos
-  (`public/textures/sajat/`), models from the three.js examples repo. Note new assets in README.
+  (`public/textures/own/`), models from the three.js examples repo. Note new assets in README.
 
 ## Testing
 
