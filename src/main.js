@@ -3,6 +3,7 @@ import { Sky } from 'three/examples/jsm/objects/Sky.js';
 import { HDRLoader } from 'three/examples/jsm/loaders/HDRLoader.js';
 import { PostPipeline } from './render/post.js';
 import { installSoftShadows } from './render/softShadows.js';
+import { SunShafts } from './render/shafts.js';
 import { loadPhotoTextures } from './world/photoTextures.js';
 import { createMaterials } from './world/materials.js';
 import { setAnisotropy } from './world/textures.js';
@@ -153,9 +154,12 @@ async function init() {
   // ---- post-processing: SSAO + tone mapping + warm grade (src/render/post.js)
   const post = new PostPipeline(renderer, scene, camera,
     QUALITY === 'high' ? { msaa: 4, ao: true, aoTaps: 12 } : { msaa: 0, ao: true, aoTaps: 6, renderScale: 0.85 });
+  const shafts = new SunShafts(sunDir, { taps: QUALITY === 'high' ? 14 : 8 });
+  post.extra = (pp) => shafts.render(pp);
   addEventListener('resize', () => post.setSize(innerWidth, innerHeight));
   addEventListener('keydown', (e) => {
     if (e.code === 'KeyG') { post.grade = !post.grade; hud.showToast(post.grade ? 'Színkorrekció: be' : 'Színkorrekció: ki'); }
+    if (e.code === 'KeyL') { shafts.enabled = !shafts.enabled; hud.showToast(shafts.enabled ? 'Fénysugarak: be' : 'Fénysugarak: ki'); }
     if (e.code === 'KeyO') { post.s.ao = post.s.ao === false; hud.showToast(post.s.ao ? 'Árnyékolás (AO): be' : 'Árnyékolás (AO): ki'); }
   });
 
@@ -181,7 +185,7 @@ async function init() {
   });
 
   // debug hooks
-  window.__game = { scene, camera, player, renderer, THREE, post };
+  window.__game = { scene, camera, player, renderer, THREE, post, shafts };
 }
 
 init().catch((e) => {
