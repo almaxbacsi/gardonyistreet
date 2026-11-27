@@ -14,7 +14,10 @@ the player is a civilian with suburban tools. See README.md for the user-facing 
 - Document progress **in issue comments** (brief, cornerstones only): dead-ends and how they were
   resolved, open questions about the goal, decision points and the choice made. When the user
   answers a question, record the answer as a comment too. Mention the merged PR at the end.
-- Branch names: `feature/<issue#>-<slug>`, `fix/<issue#>-<slug>`, `chore/<slug>`.
+- Branch names **always contain the issue number**: `feature/<issue#>-<slug>`, `fix/<issue#>-<slug>`,
+  `chore/<issue#>-<slug>`.
+- Commit subjects **start with the issue number**: `#<issue> <imperative summary>`
+  (e.g. `#9 Add tool interactions with bins, cars and vegetation`).
   Branch from the latest `main`; work issues **sequentially** (one branch merged before the next starts)
   unless told otherwise.
 - PR title = short imperative summary; PR body: what changed, how it was tested, `Closes #<issue>`.
