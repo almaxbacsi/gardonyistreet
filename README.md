@@ -33,6 +33,10 @@ Build: `npm run build` → `dist/` (can be served from any static host).
 | `G` / `O` / `L` / `B` | toggle color grading / ambient occlusion / sun shafts / bloom |
 
 Tools: shovel, lawn mower, angle grinder, impact drill, sledgehammer, hedge trimmer, rake.
+What they do: wheelie bins tip over and can be knocked around; parked cars dent, get scratched by the
+grinder, their windows crack, and they rock on their suspension; bushes and hedges are cut back until
+they disappear; trees shake, drop leaves and are felled after enough hits; the mower (hold the button to
+run the engine) and the trimmer cut the weeds. Changes last for the session.
 
 **Graphics quality:** the pause menu offers Low / Medium / High / Ultra / Auto, and the browser remembers
 your choice. On first start the game picks a preset based on the GPU. The URL can override it:
@@ -90,5 +94,7 @@ Your own photos override the downloaded textures. (The former folder name `publi
 - `src/player/` – character, controls (first / third person), IK, collision
 - `src/tools/` – tool models, definitions and the tool system
 - `src/render/` – soft shadows, post-processing (AO, sun shafts, bloom, eye adaptation, grade), quality presets
-- `src/fx/particles.js` – sparks and dust
+- `src/gameplay/interactions.js` – what the tools do to bins, cars and plants
+- `src/world/dynamicProps.js` – bin rigid bodies, deformable cars
+- `src/fx/particles.js` – sparks, dust, leaves and clippings
 - `scripts/fetch-textures.mjs` – CC0 texture download

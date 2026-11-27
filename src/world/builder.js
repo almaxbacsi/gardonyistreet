@@ -62,3 +62,26 @@ export class Batcher {
 }
 
 export function boxGeo(w, h, d) { return new THREE.BoxGeometry(w, h, d); }
+
+/** Rounded box (chamfered edges). Segment counts control how finely it can later be deformed. */
+export function rounded(w, h, d, r = 0.08, sx = 4, sy = 3, sz = 4) {
+  // cheap rounded box: box + chamfer via scale of a sphere-ish box (BoxGeometry with more segments, push verts)
+  const g = new THREE.BoxGeometry(w, h, d, sx, sy, sz);
+  const p = g.attributes.position, v = new THREE.Vector3();
+  for (let i = 0; i < p.count; i++) {
+    v.fromBufferAttribute(p, i);
+    const ix = Math.max(0, Math.abs(v.x) - (w / 2 - r)), iy = Math.max(0, Math.abs(v.y) - (h / 2 - r)), iz = Math.max(0, Math.abs(v.z) - (d / 2 - r));
+    const len = Math.hypot(ix, iy, iz);
+    if (len > 0) {
+      const k = r / len;
+      // only the axes that stick out of the inner box are pushed onto the rounded edge
+      if (ix > 0) v.x = Math.sign(v.x) * (w / 2 - r + ix * k);
+      if (iy > 0) v.y = Math.sign(v.y) * (h / 2 - r + iy * k);
+      if (iz > 0) v.z = Math.sign(v.z) * (d / 2 - r + iz * k);
+    }
+    p.setXYZ(i, v.x, v.y, v.z);
+  }
+  g.computeVertexNormals();
+  return g;
+}
+
