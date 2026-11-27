@@ -5,6 +5,8 @@ import { SunShafts } from './render/shafts.js';
 import { Bloom, EyeAdaptation } from './render/bloom.js';
 import { PRESETS, ORDER, resolveQuality, saveQuality, needsReload } from './render/quality.js';
 import { loadPhotoTextures } from './world/photoTextures.js';
+import { ToolSystem } from './tools/toolSystem.js';
+import { ParticleSystem } from './fx/particles.js';
 import { DynamicSky } from './world/sky.js';
 import { createMaterials } from './world/materials.js';
 import { setAnisotropy } from './world/textures.js';
@@ -118,6 +120,10 @@ async function init() {
   player.spawn(6, -0.4);
 
   const hud = new Hud();
+  // ---- tools + particles
+  const particles = { sparks: new ParticleSystem({ max: 500, additive: true }), dust: new ParticleSystem({ max: 400 }) };
+  scene.add(particles.sparks.points, particles.dust.points);
+  const tools = new ToolSystem({ scene, character, player, hud, particles, raycastTargets: occluders });
   player.onModeChange = (m) => {
     hud.showToast(m === 'fps' ? 'Belső nézet (V)' : 'Külső nézet (V)');
     document.getElementById('cross').classList.toggle('fps', m === 'fps');
@@ -205,7 +211,9 @@ async function init() {
     timer.update();
     const dt = Math.min(timer.getDelta(), 1 / 20);
     uniforms.uTime.value += dt;
+    tools.update(dt);
     player.update(dt);
+    particles.sparks.update(dt); particles.dust.update(dt);
     sky.update(dt, camera, scene);
     // shadow frustum follows the player (snapped to texel grid to avoid shimmering)
     const p = player.pos;
@@ -219,7 +227,7 @@ async function init() {
   });
 
   // debug hooks
-  window.__game = { scene, camera, player, renderer, THREE, post, shafts, sky };
+  window.__game = { scene, camera, player, renderer, THREE, post, shafts, sky, tools };
 }
 
 init().catch((e) => {

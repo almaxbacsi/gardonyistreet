@@ -35,6 +35,10 @@
       .devlabel { font: 600 11px ui-monospace, monospace; color: #fff; background: rgba(10,12,10,.72); border: 1px solid; border-radius: 4px; padding: 1px 5px; white-space: nowrap; transform: translateY(-50%); }
       .devlabel.picked { background: #ffeb3b; color: #111; }
       #devinfo { display: none; position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 6; font: 12px ui-monospace, monospace; color: #fff; background: rgba(10,12,10,.7); padding: 5px 10px; border-radius: 6px; pointer-events: none; }
+      #hotbar { position: absolute; right: 16px; bottom: 16px; display: flex; gap: 4px; }
+      #hotbar .slot { font-size: 11px; padding: 4px 8px; border-radius: 6px; background: rgba(15,18,14,.45); border: 1px solid rgba(255,255,255,.15); opacity: .75; }
+      #hotbar .slot b { margin-right: 5px; opacity: .7; }
+      #hotbar .slot.on { background: rgba(243,239,228,.9); color: #1e221a; text-shadow: none; opacity: 1; }
       #cross.fps { background: rgba(255,255,255,.85); box-shadow: 0 0 2px rgba(0,0,0,.8); }
       #cross { position: absolute; left: 50%; top: 50%; width: 4px; height: 4px; margin: -2px; border-radius: 50%; background: rgba(255,255,255,.5); }
     </style>
@@ -57,8 +61,10 @@
           <div><kbd>Egér</kbd></div><div>körbenézés</div>
           <div><kbd>Shift</kbd></div><div>futás</div>
           <div><kbd>Space</kbd></div><div>ugrás</div>
+          <div><kbd>Left click</kbd></div><div>use tool</div>
+          <div><kbd>1</kbd>–<kbd>7</kbd> <kbd>Görgő</kbd></div><div>switch tool (<kbd>0</kbd> empty hands)</div>
           <div><kbd>V</kbd></div><div>belső / külső nézet</div>
-          <div><kbd>Görgő</kbd></div><div>kamera távolság (külső nézetben)</div>
+          <div><kbd>C</kbd></div><div>camera distance (third person)</div>
           <div><kbd>Esc</kbd></div><div>szünet</div>
           <div><kbd>F2</kbd></div><div>fejlesztői mód (tárgy-azonosítók)</div>
         </div>

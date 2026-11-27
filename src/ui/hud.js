@@ -15,6 +15,14 @@ export class Hud {
     this.toastT = 0;
   }
 
+  /** tool hotbar at the bottom centre; index -1 = empty hands */
+  setHotbar(labels, index) {
+    let el = document.getElementById('hotbar');
+    if (!el) { el = document.createElement('div'); el.id = 'hotbar'; document.getElementById('hud').appendChild(el); }
+    el.innerHTML = [['0', 'Empty hands'], ...labels.map((l, i) => [String(i + 1), l])]
+      .map(([k, l], i) => `<div class="slot${i - 1 === index ? ' on' : ''}"><b>${k}</b>${l}</div>`).join('');
+  }
+
   showToast(text, secs = 2.5) {
     this.toast.textContent = text;
     this.toast.classList.add('show');

@@ -60,12 +60,16 @@ export class Character {
     this.ready = true;
   }
 
-  /** Hide the body from the camera (first person) while keeping its shadow. */
+  /**
+   * First person: hide the head (it would fill the view) from the camera while keeping its shadow.
+   * Torso, arms and hands stay visible so the held tool is seen in your own hands.
+   */
   setHidden(hidden) {
     if (this.hidden === hidden || !this.ready) return;
     this.hidden = hidden;
+    const HEAD = /Wolf3D_(Skin|Teeth|Beard|Headwear|Hair|Eye)/;
     this.root.traverse((o) => {
-      if (!o.isMesh || o.userData.keepVisible) return;
+      if (!o.isMesh || !HEAD.test([].concat(o.material).map((m) => m.name).join(' '))) return;
       for (const m of [].concat(o.material)) { m.colorWrite = !hidden; m.depthWrite = !hidden; }
     });
   }
@@ -87,6 +91,7 @@ export class Character {
     if (A.Walk) { A.Walk.setEffectiveWeight(this.w.Walk); A.Walk.timeScale = THREE.MathUtils.clamp(speed / 1.55, 0.6, 1.5); }
     if (A.Run) { A.Run.setEffectiveWeight(this.w.Run); A.Run.timeScale = THREE.MathUtils.clamp(speed / 5.0, 0.7, 1.3); }
     this.mixer.update(grounded ? dt : dt * 0.35);
+    this.afterAnim?.(dt); // procedural overrides (tool poses)
   }
 }
 
