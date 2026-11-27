@@ -18,9 +18,12 @@ the player is a civilian with suburban tools. See README.md for the user-facing 
   Branch from the latest `main`; work issues **sequentially** (one branch merged before the next starts)
   unless told otherwise.
 - PR title = short imperative summary; PR body: what changed, how it was tested, `Closes #<issue>`.
-- Claude may **merge its own PRs** (squash merge) once `npm run build` passes and the change was
-  checked visually (headless screenshot). Claude sessions cannot delete remote branches; the repo
-  setting "Automatically delete head branches" takes care of that.
+- Claude may **merge its own PRs** once `npm run build` passes and the change was checked visually
+  (headless screenshot). Always merge with a **merge commit** (`merge_method=merge`), never squash
+  or rebase, so `main` keeps the branch history.
+- Merged branches are deleted. Claude sessions cannot delete remote branches or change repository
+  settings (the session proxy refuses both), so the repo setting "Automatically delete head
+  branches" does it; delete the local branch after merging.
 - GitHub GraphQL is not available from Claude sessions: use the REST API via `gh api`
   (`repos/almaxbacsi/gardonyistreet/issues`, `/pulls`, `/pulls/<n>/merge`).
 - **Everything is in English**: code, comments, commits, issues/PRs, docs and all in-game UI text.
