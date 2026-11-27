@@ -26,7 +26,8 @@ V belső (FPS) / külső (TPS) nézet, G színkorrekció, O ambient occlusion, L
 | Utca nyomvonala, házak alaprajza, házszámok, szomszéd utcák, erdő | OpenStreetMap (© OSM contributors, ODbL) – `src/data/gardonyi.json` |
 | Magasságok | Street View kamerák tengerszint feletti magassága (228–238 m) + Open-Meteo DEM |
 | Kerítések, oszlopok, kocsi, kukák, közkút, carport, fák helye, házstílusok | Street View panorámák alapján kézzel felvéve (csak referencia, kép nincs felhasználva) – `src/world/layout.js` |
-| Karakter | Mixamo „Soldier” (three.js példamodell) – `public/models/Soldier.glb` |
+| Karakter | Ready Player Me avatar (three.js példamodell, `readyplayer.me.glb`) – `public/models/civilian.glb` |
+| Animációk (áll, sétál, fut) | Mixamo „Soldier” (three.js példamodell) – `public/models/Soldier.glb`, futásidőben átültetve a civil karakterre |
 | Égbolt és környezeti fény | procedurális (saját shader, felhőkkel) |
 | Textúrák | ha van: `public/textures` (CC0 Poly Haven vagy saját fotó); különben kódból generált |
 
