@@ -1,11 +1,10 @@
 import * as THREE from 'three';
-import { Sky } from 'three/examples/jsm/objects/Sky.js';
-import { HDRLoader } from 'three/examples/jsm/loaders/HDRLoader.js';
 import { PostPipeline } from './render/post.js';
 import { installSoftShadows } from './render/softShadows.js';
 import { SunShafts } from './render/shafts.js';
 import { Bloom, EyeAdaptation } from './render/bloom.js';
 import { loadPhotoTextures } from './world/photoTextures.js';
+import { DynamicSky } from './world/sky.js';
 import { createMaterials } from './world/materials.js';
 import { setAnisotropy } from './world/textures.js';
 import { buildTerrain } from './world/terrain.js';
@@ -50,31 +49,15 @@ async function init() {
 
   // ---- sky, sun, environment
   await step('Égbolt és fények…');
-  const sky = new Sky();
-  sky.scale.setScalar(10000);
-  const su = sky.material.uniforms;
-  su.turbidity.value = 5.5; su.rayleigh.value = 1.4; su.mieCoefficient.value = 0.004; su.mieDirectionalG.value = 0.82;
   // late-afternoon sun from the south-west (Street View imagery has warm side light)
   const elev = THREE.MathUtils.degToRad(34), azim = THREE.MathUtils.degToRad(215);
   const sunDir = new THREE.Vector3(Math.sin(azim) * Math.cos(elev), Math.sin(elev), -Math.cos(azim) * Math.cos(elev));
-  su.sunPosition.value.copy(sunDir);
-  scene.add(sky);
-
-  const pmrem = new THREE.PMREMGenerator(renderer);
-  try {
-    // outdoor HDRI (Poly Haven "Quarry 01", CC0) for realistic image-based lighting
-    const hdr = await new HDRLoader().loadAsync('hdri/quarry_01_1k.hdr');
-    hdr.mapping = THREE.EquirectangularReflectionMapping;
-    scene.environment = pmrem.fromEquirectangular(hdr).texture;
-    scene.environmentRotation.y = 2.2;
-    hdr.dispose();
-  } catch (e) {
-    const envScene = new THREE.Scene();
-    const sky2 = new Sky(); sky2.scale.setScalar(1000); sky2.material.uniforms.sunPosition.value.copy(sunDir);
-    envScene.add(sky2);
-    scene.environment = pmrem.fromScene(envScene, 0.02).texture;
-  }
-  scene.environmentIntensity = 0.45;
+  // procedural sky with drifting clouds; it also feeds image-based lighting (scene.environment)
+  const sky = new DynamicSky(renderer, sunDir, QUALITY === 'high'
+    ? { cloudOctaves: 6, envSize: 128, envInterval: 3 } : { cloudOctaves: 4, envSize: 64, envInterval: 6 });
+  scene.add(sky.mesh);
+  sky.updateEnvironment(scene);
+  scene.environmentIntensity = 0.8;
 
   scene.fog = new THREE.FogExp2(0xc4c3b4, 0.0016); // warm summer haze
 
@@ -86,7 +69,8 @@ async function init() {
   sc.left = -45; sc.right = 45; sc.top = 45; sc.bottom = -45; sc.near = 1; sc.far = 220;
   sun.shadow.bias = -0.0003; sun.shadow.normalBias = 0.04;
   scene.add(sun, sun.target);
-  const hemi = new THREE.HemisphereLight(0xd8e4f0, 0x5a5a3a, 0.35);
+  const hc = sky.hemiColors();
+  const hemi = new THREE.HemisphereLight(hc.sky, hc.ground, 0.25);
   scene.add(hemi);
 
   // ---- world
@@ -178,6 +162,7 @@ async function init() {
     const dt = Math.min(timer.getDelta(), 1 / 20);
     uniforms.uTime.value += dt;
     player.update(dt);
+    sky.update(dt, camera, scene);
     // shadow frustum follows the player (snapped to texel grid to avoid shimmering)
     const p = player.pos;
     const tx = Math.round(p.x / snap) * snap, tz = Math.round(p.z / snap) * snap;
@@ -189,7 +174,7 @@ async function init() {
   });
 
   // debug hooks
-  window.__game = { scene, camera, player, renderer, THREE, post, shafts };
+  window.__game = { scene, camera, player, renderer, THREE, post, shafts, sky };
 }
 
 init().catch((e) => {
